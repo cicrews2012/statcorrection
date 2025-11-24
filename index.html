@@ -784,42 +784,37 @@
                 const select = document.getElementById('fantraxTeamSelect');
                 select.innerHTML = '<option value="">-- Select Your Team --</option>';
                 
-                // Handle the actual structure: rosterInfo contains teams
+                // rosterInfo contains the actual teams with roster data
                 if (data.rosterInfo) {
                     let teamCount = 0;
                     Object.keys(data.rosterInfo).forEach(teamId => {
                         const team = data.rosterInfo[teamId];
-                        const option = document.createElement('option');
-                        option.value = teamId;
-                        option.textContent = team.teamName || team.name || `Team ${teamId}`;
-                        select.appendChild(option);
-                        teamCount++;
+                        
+                        // Skip constraint/config keys - only get actual team IDs
+                        if (teamId.startsWith('Team ') || 
+                            teamId === 'positionConstraints' || 
+                            teamId.startsWith('max') || 
+                            teamId.startsWith('min')) {
+                            return;
+                        }
+                        
+                        // Only add if it has rosterItems (actual roster)
+                        if (team.rosterItems && Array.isArray(team.rosterItems)) {
+                            const option = document.createElement('option');
+                            option.value = teamId;
+                            option.textContent = team.teamName || team.name || `Team ${teamId}`;
+                            select.appendChild(option);
+                            teamCount++;
+                        }
                     });
-                    console.log('✅ Loaded', teamCount, 'teams from Fantrax');
-                    return;
+                    
+                    if (teamCount === 0) {
+                        console.warn('⚠️ No teams with rosters found. Keys in rosterInfo:', Object.keys(data.rosterInfo));
+                    } else {
+                        console.log('✅ Loaded', teamCount, 'teams from Fantrax');
+                    }
                 }
                 
-                // Fallback: other possible structures
-                if (data.teams && Array.isArray(data.teams)) {
-                    data.teams.forEach(team => {
-                        const option = document.createElement('option');
-                        option.value = team.id;
-                        option.textContent = team.name;
-                        select.appendChild(option);
-                    });
-                    console.log('✅ Loaded', data.teams.length, 'teams from Fantrax');
-                } else if (data.league && data.league.teams) {
-                    Object.keys(data.league.teams).forEach(teamId => {
-                        const team = data.league.teams[teamId];
-                        const option = document.createElement('option');
-                        option.value = teamId;
-                        option.textContent = team.name || team.teamName;
-                        select.appendChild(option);
-                    });
-                    console.log('✅ Loaded teams from Fantrax (league structure)');
-                } else {
-                    console.warn('⚠️ Could not find teams in response');
-                }
             } catch(e) {
                 console.error('❌ Error loading Fantrax teams:', e);
             }
