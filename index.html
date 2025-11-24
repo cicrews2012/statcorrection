@@ -581,7 +581,7 @@
             
             let csv = 'Matchup Period,Max Starts,Max Relief\n';
             csv += `"${ws} to ${we}",${maxS},${maxR}\n\n`;
-            csv += 'Fantasy Team,Pitcher,MLB Team,Game Date,Game Time (ET),Type,Status,IP,ER,K,BB,H,HB,SV,HLD,QS,Points\n';
+            csv += 'Fantasy Team,Pitcher,MLB Team,Game Date,Game Time (ET),Type,Status,IP,ER,K,BB,H,HB,SV,HLD,QS,Points,Points to Remove\n';
             
             const teams = {};
             gameData.forEach(g => {
@@ -611,44 +611,50 @@
                     
                     const points = (ip*1.5) + (er*-2) + (k*0.75) + (bb*-0.25) + (h*-0.25) + (hb*-0.25) + (sv*1) + (hld*1) + (qs*1);
                     const countedPoints = ok ? points : 0;
+                    const removedPoints = ok ? 0 : points;
                     
                     const date = a.gameTime.toLocaleDateString('en-US', {month: 'numeric', day: 'numeric', year: 'numeric'});
                     const time = a.gameTime.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit', hour12: true});
                     
                     csv += `"${tn}","${a.name}","${a.mlbTeam}","${date}","${time}","${a.type}","${ok?'COUNTS':'EXCLUDED'}",`;
-                    csv += `${stats.inningsPitched||0},${er},${k},${bb},${h},${hb},${sv},${hld},${qs},${countedPoints.toFixed(2)}\n`;
+                    csv += `${stats.inningsPitched||0},${er},${k},${bb},${h},${hb},${sv},${hld},${qs},${countedPoints.toFixed(2)},${removedPoints.toFixed(2)}\n`;
                 });
             });
             
             // Add summary section
             csv += '\n\nSummary by Team\n';
-            csv += 'Fantasy Team,Total Points (Counted Only)\n';
+            csv += 'Fantasy Team,Total Points (Counted),Total Points to Remove,Net Points\n';
             
             Object.keys(teams).sort().forEach(tn => {
                 const apps = teams[tn].sort((a,b) => a.gameTime - b.gameTime);
-                let sp = 0, rp = 0, total = 0;
+                let sp = 0, rp = 0, totalCounted = 0, totalRemoved = 0;
                 
                 apps.forEach(a => {
                     if (a.type === 'SP') sp++; else rp++;
                     const ok = (a.type === 'SP' && sp <= maxS) || (a.type === 'RP' && rp <= maxR);
                     
+                    const stats = a.stats || {};
+                    const ip = parseIP(stats.inningsPitched || 0);
+                    const er = parseInt(stats.earnedRuns || 0);
+                    const k = parseInt(stats.strikeOuts || 0);
+                    const bb = parseInt(stats.baseOnBalls || 0);
+                    const h = parseInt(stats.hits || 0);
+                    const hb = parseInt(stats.hitBatsmen || 0);
+                    const sv = parseInt(stats.saves || 0);
+                    const hld = parseInt(stats.holds || 0);
+                    const qs = (ip >= 6 && er <= 3) ? 1 : 0;
+                    
+                    const points = (ip*1.5) + (er*-2) + (k*0.75) + (bb*-0.25) + (h*-0.25) + (hb*-0.25) + (sv*1) + (hld*1) + (qs*1);
+                    
                     if (ok) {
-                        const stats = a.stats || {};
-                        const ip = parseIP(stats.inningsPitched || 0);
-                        const er = parseInt(stats.earnedRuns || 0);
-                        const k = parseInt(stats.strikeOuts || 0);
-                        const bb = parseInt(stats.baseOnBalls || 0);
-                        const h = parseInt(stats.hits || 0);
-                        const hb = parseInt(stats.hitBatsmen || 0);
-                        const sv = parseInt(stats.saves || 0);
-                        const hld = parseInt(stats.holds || 0);
-                        const qs = (ip >= 6 && er <= 3) ? 1 : 0;
-                        
-                        total += (ip*1.5) + (er*-2) + (k*0.75) + (bb*-0.25) + (h*-0.25) + (hb*-0.25) + (sv*1) + (hld*1) + (qs*1);
+                        totalCounted += points;
+                    } else {
+                        totalRemoved += points;
                     }
                 });
                 
-                csv += `"${tn}",${total.toFixed(2)}\n`;
+                const netPoints = totalCounted; // Net is just the counted points
+                csv += `"${tn}",${totalCounted.toFixed(2)},${totalRemoved.toFixed(2)},${netPoints.toFixed(2)}\n`;
             });
             
             const blob = new Blob([csv], {type: 'text/csv'});
