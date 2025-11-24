@@ -125,7 +125,7 @@
         
         .pitcher-entry {
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr auto;
+            grid-template-columns: 2fr 1fr auto;
             gap: 10px;
             margin-bottom: 10px;
             align-items: end;
@@ -403,13 +403,6 @@
                             <label>Team</label>
                             <input type="text" class="pitcher-team" placeholder="NYY" maxlength="3">
                         </div>
-                        <div class="form-group">
-                            <label>Type</label>
-                            <select class="pitcher-type">
-                                <option value="SP">Start (SP)</option>
-                                <option value="RP">Relief (RP)</option>
-                            </select>
-                        </div>
                         <button class="btn btn-danger" onclick="removeRow(this)" style="margin-top: 20px;">Remove</button>
                     </div>
                 </div>
@@ -568,13 +561,6 @@
                         <label>Team</label>
                         <input type="text" class="pitcher-team" placeholder="NYY" maxlength="3">
                     </div>
-                    <div class="form-group">
-                        <label>Type</label>
-                        <select class="pitcher-type">
-                            <option value="SP">Start (SP)</option>
-                            <option value="RP">Relief (RP)</option>
-                        </select>
-                    </div>
                     <button class="btn btn-danger" onclick="removeRow(this)" style="margin-top: 20px;">Remove</button>
                 `;
                 container.appendChild(newEntry);
@@ -633,12 +619,6 @@
                 <div class="form-group">
                     <input type="text" class="pitcher-team" placeholder="NYY" maxlength="3">
                 </div>
-                <div class="form-group">
-                    <select class="pitcher-type">
-                        <option value="SP">Start (SP)</option>
-                        <option value="RP">Relief (RP)</option>
-                    </select>
-                </div>
                 <button class="btn btn-danger" onclick="removeRow(this)">Remove</button>
             `;
             container.appendChild(newRow);
@@ -669,11 +649,10 @@
                 const nameInput = entry.querySelector('.pitcher-name');
                 const name = nameInput.value;
                 const team = entry.querySelector('.pitcher-team').value;
-                const type = entry.querySelector('.pitcher-type').value;
                 const playerId = nameInput.dataset.playerId;
                 
                 if (name && team) {
-                    pitchers.push({ name, team, type: type, playerId, manualType: type });
+                    pitchers.push({ name, team, playerId });
                 }
             });
             
@@ -952,89 +931,129 @@
         function createStatsInputs() {
             const teamName = document.getElementById('teamName').value;
             
-            let html = `
-                <div class="summary-card">
-                    <h3>${teamName} - Pitcher Stats</h3>
-                    <p>Stats automatically populated from MLB API. Edit if needed. Only pitchers marked as "Counts" will be included in final totals.</p>
-                </div>
-            `;
-            
-            gameTimesData.forEach((pitcher, index) => {
+            // Group appearances by pitcher
+            const pitcherGroups = {};
+            gameTimesData.forEach((appearance, index) => {
+                const key = `${appearance.name}-${appearance.playerId}`;
+                if (!pitcherGroups[key]) {
+                    pitcherGroups[key] = {
+                        name: appearance.name,
+                        team: appearance.team,
+                        appearances: []
+                    };
+                }
+                
                 let spCount = gameTimesData.slice(0, index + 1).filter(p => p.type === 'SP').length;
                 let rpCount = gameTimesData.slice(0, index + 1).filter(p => p.type === 'RP').length;
                 
                 let counts = false;
-                if (pitcher.type === 'SP' && spCount <= 7) counts = true;
-                if (pitcher.type === 'RP' && rpCount <= 10) counts = true;
+                if (appearance.type === 'SP' && spCount <= 7) counts = true;
+                if (appearance.type === 'RP' && rpCount <= 10) counts = true;
                 
-                const bgClass = counts ? 'counted' : 'excluded';
-                const statusText = counts ? '✓ COUNTS' : '✗ EXCLUDED';
+                pitcherGroups[key].appearances.push({
+                    ...appearance,
+                    index: index,
+                    counts: counts,
+                    spCount: appearance.type === 'SP' ? spCount : null,
+                    rpCount: appearance.type === 'RP' ? rpCount : null
+                });
+            });
+            
+            let html = `
+                <div class="summary-card">
+                    <h3>${teamName} - Pitcher Stats</h3>
+                    <p>Stats automatically populated from MLB API. Multiple appearances are combined with notes showing which count toward limits.</p>
+                </div>
+            `;
+            
+            Object.values(pitcherGroups).forEach((pitcher, groupIndex) => {
+                const countedAppearances = pitcher.appearances.filter(a => a.counts);
+                const excludedAppearances = pitcher.appearances.filter(a => !a.counts);
                 
-                // Get stats from API or use defaults
-                const stats = pitcher.stats || {};
-                const ip = stats.inningsPitched || '0';
-                const er = stats.earnedRuns || 0;
-                const k = stats.strikeOuts || 0;
-                const bb = stats.baseOnBalls || 0;
-                const h = stats.hits || 0;
-                const hb = stats.hitBatsmen || 0;
+                const allCount = countedAppearances.length === pitcher.appearances.length;
+                const noneCount = countedAppearances.length === 0;
+                const someCount = !allCount && !noneCount;
                 
-                // Calculate QS (6+ IP and 3 or fewer ER)
-                const ipNum = parseFloat(ip);
-                const qs = (ipNum >= 6 && er <= 3) ? 1 : 0;
-                
-                const sv = stats.saves || 0;
-                const hld = stats.holds || 0;
-                
-                const statsNote = pitcher.stats ? '✓ Auto-loaded from MLB API' : '⚠️ Stats not found - enter manually';
+                let statusText = '';
+                let borderColor = '';
+                if (allCount) {
+                    statusText = `✓ ALL ${pitcher.appearances.length} APPEARANCE${pitcher.appearances.length > 1 ? 'S' : ''} COUNT`;
+                    borderColor = '#10b981';
+                } else if (noneCount) {
+                    statusText = `✗ ALL ${pitcher.appearances.length} APPEARANCE${pitcher.appearances.length > 1 ? 'S' : ''} EXCLUDED`;
+                    borderColor = '#ef4444';
+                } else {
+                    statusText = `⚠ ${countedAppearances.length} of ${pitcher.appearances.length} APPEARANCES COUNT`;
+                    borderColor = '#f59e0b';
+                }
                 
                 html += `
-                    <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid ${counts ? '#10b981' : '#ef4444'};">
+                    <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid ${borderColor};">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <h4 style="margin: 0;">${pitcher.name} (${pitcher.team}) - ${pitcher.type}</h4>
-                            <span style="padding: 5px 15px; border-radius: 20px; font-weight: 600; font-size: 12px; ${counts ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'}">${statusText}</span>
+                            <h4 style="margin: 0;">${pitcher.name} (${pitcher.team}) - ${pitcher.appearances.length} Appearance${pitcher.appearances.length > 1 ? 's' : ''}</h4>
+                            <span style="padding: 5px 15px; border-radius: 20px; font-weight: 600; font-size: 12px; background: ${allCount ? '#d1fae5' : noneCount ? '#fee2e2' : '#fef3c7'}; color: ${allCount ? '#065f46' : noneCount ? '#991b1b' : '#92400e'};">${statusText}</span>
                         </div>
-                        <div style="font-size: 12px; color: #6b7280; margin-bottom: 15px;">${statsNote}</div>
-                        <div class="stat-input" id="stats-${index}">
+                `;
+                
+                // Show breakdown if multiple appearances
+                if (pitcher.appearances.length > 1) {
+                    html += `<div style="font-size: 12px; color: #6b7280; margin-bottom: 15px; background: white; padding: 10px; border-radius: 4px;">`;
+                    pitcher.appearances.forEach(app => {
+                        const date = new Date(app.gameTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        const countLabel = app.type === 'SP' ? `SP ${app.spCount}/7` : `RP ${app.rpCount}/10`;
+                        const icon = app.counts ? '✓' : '✗';
+                        const color = app.counts ? '#10b981' : '#ef4444';
+                        html += `<div style="margin: 5px 0;"><span style="color: ${color};">${icon}</span> ${date} - ${app.type} (${countLabel})</div>`;
+                    });
+                    html += `</div>`;
+                }
+                
+                // Combined stats input
+                html += `
+                        <div class="stat-input" id="stats-group-${groupIndex}">
                             <div class="form-group">
                                 <label>IP</label>
-                                <input type="number" step="0.1" class="stat-ip" data-index="${index}" value="${ip}">
+                                <input type="number" step="0.1" class="stat-ip" data-group="${groupIndex}" value="${getCombinedStat(pitcher.appearances, 'inningsPitched')}">
                             </div>
                             <div class="form-group">
                                 <label>ER</label>
-                                <input type="number" class="stat-er" data-index="${index}" value="${er}">
+                                <input type="number" class="stat-er" data-group="${groupIndex}" value="${getCombinedStat(pitcher.appearances, 'earnedRuns')}">
                             </div>
                             <div class="form-group">
                                 <label>K</label>
-                                <input type="number" class="stat-k" data-index="${index}" value="${k}">
+                                <input type="number" class="stat-k" data-group="${groupIndex}" value="${getCombinedStat(pitcher.appearances, 'strikeOuts')}">
                             </div>
                             <div class="form-group">
                                 <label>BB</label>
-                                <input type="number" class="stat-bb" data-index="${index}" value="${bb}">
+                                <input type="number" class="stat-bb" data-group="${groupIndex}" value="${getCombinedStat(pitcher.appearances, 'baseOnBalls')}">
                             </div>
                             <div class="form-group">
                                 <label>H</label>
-                                <input type="number" class="stat-h" data-index="${index}" value="${h}">
+                                <input type="number" class="stat-h" data-group="${groupIndex}" value="${getCombinedStat(pitcher.appearances, 'hits')}">
                             </div>
                             <div class="form-group">
                                 <label>HB</label>
-                                <input type="number" class="stat-hb" data-index="${index}" value="${hb}">
+                                <input type="number" class="stat-hb" data-group="${groupIndex}" value="${getCombinedStat(pitcher.appearances, 'hitBatsmen')}">
                             </div>
                             <div class="form-group">
                                 <label>QS</label>
-                                <input type="number" class="stat-qs" data-index="${index}" value="${qs}" max="1">
+                                <input type="number" class="stat-qs" data-group="${groupIndex}" value="${getCombinedQS(pitcher.appearances)}" max="${pitcher.appearances.length}">
                             </div>
                             <div class="form-group">
                                 <label>SV</label>
-                                <input type="number" class="stat-sv" data-index="${index}" value="${sv}">
+                                <input type="number" class="stat-sv" data-group="${groupIndex}" value="${getCombinedStat(pitcher.appearances, 'saves')}">
                             </div>
                             <div class="form-group">
                                 <label>HLD</label>
-                                <input type="number" class="stat-hld" data-index="${index}" value="${hld}">
+                                <input type="number" class="stat-hld" data-group="${groupIndex}" value="${getCombinedStat(pitcher.appearances, 'holds')}">
                             </div>
                         </div>
-                    </div>
                 `;
+                
+                // Store metadata for calculation
+                html += `<input type="hidden" class="pitcher-metadata" data-group="${groupIndex}" value='${JSON.stringify(pitcher)}'>`;
+                
+                html += `</div>`;
             });
             
             html += `
@@ -1045,6 +1064,28 @@
             `;
             
             document.getElementById('statsResults').innerHTML = html;
+        }
+        
+        function getCombinedStat(appearances, statName) {
+            let total = 0;
+            appearances.forEach(app => {
+                if (app.stats && app.stats[statName]) {
+                    total += parseFloat(app.stats[statName]) || 0;
+                }
+            });
+            return total || 0;
+        }
+        
+        function getCombinedQS(appearances) {
+            let total = 0;
+            appearances.forEach(app => {
+                if (app.stats) {
+                    const ip = parseFloat(app.stats.inningsPitched) || 0;
+                    const er = parseFloat(app.stats.earnedRuns) || 0;
+                    if (ip >= 6 && er <= 3) total++;
+                }
+            });
+            return total;
         }
         
         function calculateTotals() {
@@ -1061,44 +1102,85 @@
             };
             
             let totalPoints = 0;
-            let countedPitchers = [];
+            let pitcherBreakdowns = [];
             
-            gameTimesData.forEach((pitcher, index) => {
-                let spCount = gameTimesData.slice(0, index + 1).filter(p => p.type === 'SP').length;
-                let rpCount = gameTimesData.slice(0, index + 1).filter(p => p.type === 'RP').length;
+            // Get all pitcher groups
+            const metadataElements = document.querySelectorAll('.pitcher-metadata');
+            
+            metadataElements.forEach((metaElement) => {
+                const groupIndex = metaElement.dataset.group;
+                const pitcherData = JSON.parse(metaElement.value);
                 
-                let counts = false;
-                if (pitcher.type === 'SP' && spCount <= 7) counts = true;
-                if (pitcher.type === 'RP' && rpCount <= 10) counts = true;
+                // Get input values
+                const ip = parseFloat(document.querySelector(`input.stat-ip[data-group="${groupIndex}"]`).value) || 0;
+                const er = parseFloat(document.querySelector(`input.stat-er[data-group="${groupIndex}"]`).value) || 0;
+                const k = parseFloat(document.querySelector(`input.stat-k[data-group="${groupIndex}"]`).value) || 0;
+                const bb = parseFloat(document.querySelector(`input.stat-bb[data-group="${groupIndex}"]`).value) || 0;
+                const h = parseFloat(document.querySelector(`input.stat-h[data-group="${groupIndex}"]`).value) || 0;
+                const hb = parseFloat(document.querySelector(`input.stat-hb[data-group="${groupIndex}"]`).value) || 0;
+                const qs = parseFloat(document.querySelector(`input.stat-qs[data-group="${groupIndex}"]`).value) || 0;
+                const sv = parseFloat(document.querySelector(`input.stat-sv[data-group="${groupIndex}"]`).value) || 0;
+                const hld = parseFloat(document.querySelector(`input.stat-hld[data-group="${groupIndex}"]`).value) || 0;
                 
-                if (counts) {
-                    const ip = parseFloat(document.querySelector(`input.stat-ip[data-index="${index}"]`).value) || 0;
-                    const er = parseFloat(document.querySelector(`input.stat-er[data-index="${index}"]`).value) || 0;
-                    const k = parseFloat(document.querySelector(`input.stat-k[data-index="${index}"]`).value) || 0;
-                    const bb = parseFloat(document.querySelector(`input.stat-bb[data-index="${index}"]`).value) || 0;
-                    const h = parseFloat(document.querySelector(`input.stat-h[data-index="${index}"]`).value) || 0;
-                    const hb = parseFloat(document.querySelector(`input.stat-hb[data-index="${index}"]`).value) || 0;
-                    const qs = parseFloat(document.querySelector(`input.stat-qs[data-index="${index}"]`).value) || 0;
-                    const sv = parseFloat(document.querySelector(`input.stat-sv[data-index="${index}"]`).value) || 0;
-                    const hld = parseFloat(document.querySelector(`input.stat-hld[data-index="${index}"]`).value) || 0;
+                // Calculate total points
+                const totalPts = (ip * scoringRules.IP) + 
+                             (er * scoringRules.ER) + 
+                             (k * scoringRules.K) + 
+                             (bb * scoringRules.BB) + 
+                             (h * scoringRules.H) + 
+                             (hb * scoringRules.HB) + 
+                             (qs * scoringRules.QS) + 
+                             (sv * scoringRules.SV) + 
+                             (hld * scoringRules.HLD);
+                
+                const countedAppearances = pitcherData.appearances.filter(a => a.counts);
+                const excludedAppearances = pitcherData.appearances.filter(a => !a.counts);
+                
+                // Calculate points for counted vs excluded if there's a mix
+                let countedPoints = totalPts;
+                let excludedPoints = 0;
+                let explanation = '';
+                
+                if (countedAppearances.length > 0 && excludedAppearances.length > 0) {
+                    // Proportional split based on IP (or appearances if no IP data)
+                    const countedIP = countedAppearances.reduce((sum, app) => 
+                        sum + (parseFloat(app.stats?.inningsPitched) || 0), 0);
+                    const excludedIP = excludedAppearances.reduce((sum, app) => 
+                        sum + (parseFloat(app.stats?.inningsPitched) || 0), 0);
                     
-                    const points = (ip * scoringRules.IP) + 
-                                 (er * scoringRules.ER) + 
-                                 (k * scoringRules.K) + 
-                                 (bb * scoringRules.BB) + 
-                                 (h * scoringRules.H) + 
-                                 (hb * scoringRules.HB) + 
-                                 (qs * scoringRules.QS) + 
-                                 (sv * scoringRules.SV) + 
-                                 (hld * scoringRules.HLD);
-                    
-                    totalPoints += points;
-                    countedPitchers.push({
-                        name: pitcher.name,
-                        type: pitcher.type,
-                        points: points.toFixed(2)
-                    });
+                    if (countedIP + excludedIP > 0) {
+                        const countedRatio = countedIP / (countedIP + excludedIP);
+                        countedPoints = totalPts * countedRatio;
+                        excludedPoints = totalPts * (1 - countedRatio);
+                        
+                        explanation = `${countedAppearances.length} appearance${countedAppearances.length > 1 ? 's' : ''} counted (${countedIP.toFixed(1)} IP), ${excludedAppearances.length} excluded (${excludedIP.toFixed(1)} IP). Points split proportionally: ${countedPoints.toFixed(2)} counted + ${excludedPoints.toFixed(2)} excluded = ${totalPts.toFixed(2)} total.`;
+                    } else {
+                        // Fallback to even split if no IP data
+                        countedPoints = totalPts * (countedAppearances.length / pitcherData.appearances.length);
+                        excludedPoints = totalPts * (excludedAppearances.length / pitcherData.appearances.length);
+                        
+                        explanation = `${countedAppearances.length} of ${pitcherData.appearances.length} appearances counted. Points split evenly: ${countedPoints.toFixed(2)} counted + ${excludedPoints.toFixed(2)} excluded = ${totalPts.toFixed(2)} total.`;
+                    }
+                } else if (countedAppearances.length === 0) {
+                    countedPoints = 0;
+                    excludedPoints = totalPts;
+                    explanation = `All ${pitcherData.appearances.length} appearance${pitcherData.appearances.length > 1 ? 's' : ''} exceeded limits. 0 points awarded.`;
+                } else {
+                    explanation = `All ${pitcherData.appearances.length} appearance${pitcherData.appearances.length > 1 ? 's' : ''} counted. ${totalPts.toFixed(2)} points awarded.`;
                 }
+                
+                totalPoints += countedPoints;
+                
+                pitcherBreakdowns.push({
+                    name: pitcherData.name,
+                    totalAppearances: pitcherData.appearances.length,
+                    countedAppearances: countedAppearances.length,
+                    countedPoints: countedPoints,
+                    excludedPoints: excludedPoints,
+                    totalPts: totalPts,
+                    explanation: explanation,
+                    stats: { ip, er, k, bb, h, hb, qs, sv, hld }
+                });
             });
             
             const teamName = document.getElementById('teamName').value;
@@ -1112,38 +1194,44 @@
                             <div class="value">${totalPoints.toFixed(2)}</div>
                         </div>
                         <div class="stat-box">
-                            <div class="label">Pitchers Counted</div>
-                            <div class="value">${countedPitchers.length}</div>
+                            <div class="label">Pitchers</div>
+                            <div class="value">${pitcherBreakdowns.length}</div>
                         </div>
                     </div>
                 </div>
                 
-                <h4 style="margin-top: 20px; margin-bottom: 10px;">Breakdown by Pitcher:</h4>
-                <table class="results-table">
-                    <thead>
-                        <tr>
-                            <th>Pitcher</th>
-                            <th>Type</th>
-                            <th>Points</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <h4 style="margin-top: 20px; margin-bottom: 10px;">Detailed Breakdown:</h4>
             `;
             
-            countedPitchers.forEach(p => {
+            pitcherBreakdowns.forEach(p => {
+                const borderColor = p.countedPoints === 0 ? '#ef4444' : 
+                                   p.excludedPoints > 0 ? '#f59e0b' : '#10b981';
+                
                 html += `
-                    <tr>
-                        <td><strong>${p.name}</strong></td>
-                        <td>${p.type}</td>
-                        <td>${p.points}</td>
-                    </tr>
+                    <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid ${borderColor};">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div>
+                                <strong style="font-size: 16px;">${p.name}</strong>
+                                <div style="font-size: 13px; color: #6b7280; margin-top: 3px;">
+                                    IP: ${p.stats.ip} | ER: ${p.stats.er} | K: ${p.stats.k} | BB: ${p.stats.bb} | H: ${p.stats.h}
+                                    ${p.stats.qs > 0 ? ` | QS: ${p.stats.qs}` : ''}
+                                    ${p.stats.sv > 0 ? ` | SV: ${p.stats.sv}` : ''}
+                                    ${p.stats.hld > 0 ? ` | HLD: ${p.stats.hld}` : ''}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 20px; font-weight: 700; color: ${borderColor};">
+                                    ${p.countedPoints.toFixed(2)} pts
+                                </div>
+                                ${p.excludedPoints > 0 ? `<div style="font-size: 11px; color: #6b7280;">(${p.excludedPoints.toFixed(2)} excluded)</div>` : ''}
+                            </div>
+                        </div>
+                        <div style="font-size: 12px; color: #6b7280; background: white; padding: 8px; border-radius: 4px;">
+                            ${p.explanation}
+                        </div>
+                    </div>
                 `;
             });
-            
-            html += `
-                    </tbody>
-                </table>
-            `;
             
             document.getElementById('finalResults').innerHTML = html;
             document.getElementById('finalResults').scrollIntoView({ behavior: 'smooth' });
