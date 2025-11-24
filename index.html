@@ -258,9 +258,17 @@
                     allPitchers = data.people
                         .filter(p => p.primaryPosition && p.primaryPosition.abbreviation === 'P')
                         .map(p => ({ name: p.fullName, id: p.id, team: p.currentTeam?.abbreviation || 'FA' }));
-                    console.log('Loaded ' + allPitchers.length + ' pitchers');
+                    console.log('✅ Loaded ' + allPitchers.length + ' pitchers');
+                    
+                    // Check for Chase Dollander specifically
+                    const dollander = allPitchers.find(p => p.name.toLowerCase().includes('dollander'));
+                    if (dollander) {
+                        console.log('Found Chase Dollander:', dollander);
+                    } else {
+                        console.log('⚠️ Chase Dollander not in 2024 roster (may be rookie/minor leaguer)');
+                    }
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error('❌ Error loading pitchers:', e); }
         }
         
         function searchPitcher(input) {
@@ -327,42 +335,95 @@
                 const mlb = e.querySelector('.mlb-team').value;
                 const date = e.querySelector('.game-date').value;
                 const id = e.querySelector('.pitcher-name').dataset.playerId;
+                
+                console.log('Entry:', { ft, name, mlb, date, id });
+                
                 if (ft && name && mlb && date) {
                     pitchers.push({ fantasyTeam: ft, name, mlbTeam: mlb, gameDate: date, playerId: id });
                 }
             });
+            
+            console.log('Collected pitchers:', pitchers);
+            
             if (!pitchers.length) { alert('Add at least one pitcher'); return; }
             
             document.getElementById('reviewResults').innerHTML = '<div class="loading">Fetching...</div>';
             switchTab(1);
             
             gameData = [];
+            const notFound = [];
+            
             for (const p of pitchers) {
+                console.log('Fetching game for:', p.name);
                 const g = await fetchGameData(p.playerId, p.mlbTeam, p.gameDate, p.name);
-                if (g) gameData.push({ ...p, gameTime: g.gameTime, type: g.type, stats: g.stats });
+                console.log('Result for', p.name, ':', g);
+                if (g) {
+                    gameData.push({ ...p, gameTime: g.gameTime, type: g.type, stats: g.stats });
+                } else {
+                    notFound.push(p);
+                }
             }
+            
+            console.log('Final gameData:', gameData);
+            console.log('Not found:', notFound);
+            
+            if (notFound.length > 0) {
+                const names = notFound.map(p => `${p.name} (${p.mlbTeam}, ${p.gameDate})`).join('\n');
+                alert(`⚠️ Could not find game data for:\n\n${names}\n\nThese pitchers will not appear in Step 2. Check:\n- Team abbreviation is correct\n- Date is correct\n- Pitcher actually appeared in that game`);
+            }
+            
             displayReview();
         }
         
         async function fetchGameData(id, team, date, name) {
             try {
+                console.log(`🔍 Searching for: ${name} (${team}) on ${date}, ID: ${id || 'none'}`);
+                
                 const teams = {NYY:147,BOS:111,TOR:141,TB:139,BAL:110,CLE:114,MIN:142,CWS:145,DET:116,KC:118,
                               HOU:117,TEX:140,SEA:136,LAA:108,OAK:133,ATL:144,NYM:121,PHI:143,MIA:146,WSH:120,
                               MIL:158,CHC:112,STL:138,PIT:134,CIN:113,LAD:119,SD:135,SF:137,ARI:109,COL:115};
                 const tid = teams[team.toUpperCase()];
+                
+                if (!tid) {
+                    console.error('❌ Unknown team:', team);
+                    return null;
+                }
+                
+                console.log(`📅 Fetching schedule for team ${team} (${tid}) on ${date}`);
                 const sched = await fetch(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&teamId=${tid}&startDate=${date}&endDate=${date}`);
                 const sd = await sched.json();
-                if (!sd.dates || !sd.dates.length) return null;
+                
+                if (!sd.dates || !sd.dates.length) {
+                    console.log('❌ No games found for', team, 'on', date);
+                    return null;
+                }
+                
+                console.log(`Found ${sd.dates[0].games.length} game(s)`);
                 
                 for (const dt of sd.dates) {
                     for (const game of dt.games) {
+                        console.log(`📦 Fetching boxscore for game ${game.gamePk}`);
                         const box = await fetch(`https://statsapi.mlb.com/api/v1/game/${game.gamePk}/boxscore`);
                         const bd = await box.json();
                         
                         let pitcher = null, teamData = null;
+                        
+                        // Search both teams
                         for (const t of [bd.teams.home, bd.teams.away]) {
+                            const teamName = t.team.name;
+                            console.log(`  Searching ${teamName} roster...`);
+                            
                             for (const [k,p] of Object.entries(t.players || {})) {
-                                if ((id && p.person.id == id) || (name && p.person.fullName.toLowerCase().includes(name.toLowerCase()))) {
+                                // Check by ID if available
+                                if (id && p.person.id == id) {
+                                    console.log(`    ✓ Found by ID: ${p.person.fullName}`);
+                                    if (p.stats?.pitching && (p.stats.pitching.battersFaced > 0 || parseFloat(p.stats.pitching.inningsPitched||0) > 0)) {
+                                        pitcher = p; teamData = t; break;
+                                    }
+                                }
+                                // Check by name if no ID
+                                if (!id && p.person.fullName.toLowerCase().includes(name.toLowerCase())) {
+                                    console.log(`    ✓ Found by name: ${p.person.fullName}`);
                                     if (p.stats?.pitching && (p.stats.pitching.battersFaced > 0 || parseFloat(p.stats.pitching.inningsPitched||0) > 0)) {
                                         pitcher = p; teamData = t; break;
                                     }
@@ -373,12 +434,20 @@
                         
                         if (pitcher) {
                             const isStart = teamData.pitchers && teamData.pitchers[0] == pitcher.person.id;
+                            console.log(`✅ Found ${pitcher.person.fullName} - ${isStart ? 'SP' : 'RP'}`);
                             return { gameTime: new Date(game.gameDate), type: isStart ? 'SP' : 'RP', stats: pitcher.stats.pitching };
+                        } else {
+                            console.log('❌ Pitcher not found in this game');
                         }
                     }
                 }
+                
+                console.log(`❌ ${name} not found in any games for ${team} on ${date}`);
                 return null;
-            } catch(e) { console.error(e); return null; }
+            } catch(e) { 
+                console.error('❌ Error fetching game:', e); 
+                return null; 
+            }
         }
         
         function displayReview() {
