@@ -479,6 +479,17 @@
             document.getElementById('weekStart').valueAsDate = monday;
             updateWeekEnd();
             loadMLBPitchers();
+            
+            // Set initial game date to week start
+            setTimeout(() => {
+                const initialGameDate = document.querySelector('.game-date');
+                if (initialGameDate) {
+                    const weekStart = document.getElementById('weekStart').value;
+                    if (weekStart) {
+                        initialGameDate.value = weekStart;
+                    }
+                }
+            }, 100);
         };
         
         async function loadMLBPitchers() {
@@ -714,10 +725,9 @@
         async function fetchGameTimes() {
             const weekStart = document.getElementById('weekStart').value;
             const weekEnd = document.getElementById('weekEnd').value;
-            const teamName = document.getElementById('teamName').value;
             
-            if (!weekStart || !teamName) {
-                alert('Please fill in week start date and team name');
+            if (!weekStart) {
+                alert('Please select a week start date');
                 return;
             }
             
