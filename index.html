@@ -567,16 +567,6 @@
                 }
             }
         }
-                            id: p.id,
-                            team: (p.currentTeam && p.currentTeam.abbreviation) ? p.currentTeam.abbreviation : 'FA'
-                        }));
-                        
-                    console.log(`Loaded ${allMLBPitchers.length} MLB pitchers (fallback)`);
-                } catch (fallbackError) {
-                    console.error('Fallback also failed:', fallbackError);
-                }
-            }
-        }
         
         function searchPitcher(input) {
             const query = input.value.toLowerCase();
