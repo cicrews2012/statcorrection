@@ -1371,23 +1371,6 @@
                 arrow.textContent = '▶';
             }
         }
-                
-                pitcherGroups[key].appearances.push({
-                    ...appearance,
-                    index: index,
-                    counts: counts,
-                    spCount: appearance.type === 'SP' ? spCount : null,
-                    rpCount: appearance.type === 'RP' ? rpCount : null
-                });
-            });
-            
-            let html = `
-                <div class="summary-card">
-                    <h3>${teamName} - Pitcher Stats</h3>
-                    <p>Stats automatically populated from MLB API. Multiple appearances are combined with notes showing which count toward limits.</p>
-                </div>
-            `;
-            
             Object.values(pitcherGroups).forEach((pitcher, groupIndex) => {
                 const countedAppearances = pitcher.appearances.filter(a => a.counts);
                 const excludedAppearances = pitcher.appearances.filter(a => !a.counts);
