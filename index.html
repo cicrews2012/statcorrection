@@ -195,9 +195,12 @@
             </div>
             
             <h3>OR Manually Add Pitcher Appearances</h3>
-            <p style="color: #6b7280; font-size: 14px; margin-bottom: 15px;">
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 10px;">
                 Add each active appearance for ALL teams with overages
             </p>
+            <button class="btn btn-secondary" onclick="loadTestData()" style="margin-bottom: 15px; font-size: 13px;">
+                📋 Load Test Data (March 31-Apr 6)
+            </button>
             
             <div style="background: #f0f9ff; border: 2px solid #3b82f6; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                 <h4 style="margin-bottom: 10px;">🔧 Test Fantrax API</h4>
@@ -767,11 +770,18 @@
             if (!leagueId) return;
             
             try {
+                console.log('🔍 Loading teams from Fantrax...');
                 const url = `https://www.fantrax.com/fxea/general/getLeagueInfo?leagueId=${leagueId}`;
                 const res = await fetch(url);
-                const data = await res.json();
                 
-                if (data && data.teams) {
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                }
+                
+                const data = await res.json();
+                console.log('Fantrax response:', data);
+                
+                if (data && data.teams && Array.isArray(data.teams)) {
                     const select = document.getElementById('fantraxTeamSelect');
                     select.innerHTML = '<option value="">-- Select Your Team --</option>';
                     
@@ -783,9 +793,26 @@
                     });
                     
                     console.log('✅ Loaded', data.teams.length, 'teams from Fantrax');
+                } else if (data && data.league && data.league.teams) {
+                    // Alternative structure
+                    const select = document.getElementById('fantraxTeamSelect');
+                    select.innerHTML = '<option value="">-- Select Your Team --</option>';
+                    
+                    Object.keys(data.league.teams).forEach(teamId => {
+                        const team = data.league.teams[teamId];
+                        const option = document.createElement('option');
+                        option.value = teamId;
+                        option.textContent = team.name || team.teamName;
+                        select.appendChild(option);
+                    });
+                    
+                    console.log('✅ Loaded teams from Fantrax (alt structure)');
+                } else {
+                    console.warn('⚠️ Unexpected Fantrax data structure:', data);
                 }
             } catch(e) {
-                console.error('Error loading Fantrax teams:', e);
+                console.error('❌ Error loading Fantrax teams:', e);
+                // Don't show alert on page load, just log it
             }
         }
         
@@ -808,81 +835,87 @@
                 
                 if (!weekStart || !weekEnd) {
                     alert('Please select week start and end dates first');
+                    statusDiv.innerHTML = '';
                     return;
                 }
                 
-                // Calculate which periods to check (Fantrax uses daily periods)
-                const start = new Date(weekStart);
-                const end = new Date(weekEnd);
-                const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                // First get league info to find team roster
+                const leagueUrl = `https://www.fantrax.com/fxea/general/getLeagueInfo?leagueId=${leagueId}`;
+                const leagueRes = await fetch(leagueUrl);
                 
-                // Fetch rosters for the week - we'll need to get each day's lineup
-                // For now, let's get the league info which includes current rosters
-                const url = `https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${leagueId}`;
-                const res = await fetch(url);
-                const data = await res.json();
+                if (!leagueRes.ok) {
+                    throw new Error('Failed to fetch league data');
+                }
                 
-                if (!data || !data.rosters) {
-                    statusDiv.innerHTML = '❌ Could not fetch roster data';
+                const leagueData = await leagueRes.json();
+                console.log('League data:', leagueData);
+                
+                // Find the team's players
+                let players = [];
+                
+                // Try different possible data structures
+                if (leagueData.league && leagueData.league.teams && leagueData.league.teams[teamId]) {
+                    const team = leagueData.league.teams[teamId];
+                    if (team.roster) players = team.roster;
+                } else if (leagueData.teams && leagueData.teams[teamId]) {
+                    const team = leagueData.teams[teamId];
+                    if (team.roster) players = team.roster;
+                }
+                
+                if (players.length === 0 && leagueData.players) {
+                    // Players might be in a separate list
+                    players = Object.values(leagueData.players).filter(p => p.teamId === teamId);
+                }
+                
+                console.log('Found players:', players);
+                
+                if (players.length === 0) {
+                    statusDiv.innerHTML = '⚠️ Could not find roster data. Fantrax API may have changed structure. You can still add pitchers manually below.';
                     return;
                 }
                 
-                // Find the selected team's roster
-                const teamRoster = data.rosters[teamId];
-                if (!teamRoster) {
-                    statusDiv.innerHTML = '❌ Could not find roster for selected team';
+                // Filter for pitchers only
+                const pitchers = players.filter(p => {
+                    const pos = p.position || p.pos || '';
+                    return pos.includes('P') || pos === 'SP' || pos === 'RP';
+                });
+                
+                if (pitchers.length === 0) {
+                    statusDiv.innerHTML = '⚠️ No pitchers found on roster. Add them manually below.';
                     return;
                 }
                 
-                // Get all pitchers from the roster
-                const pitchers = [];
-                if (teamRoster.players) {
-                    teamRoster.players.forEach(player => {
-                        // Check if player is a pitcher
-                        if (player.position && (player.position.includes('P') || player.position === 'SP' || player.position === 'RP')) {
-                            pitchers.push({
-                                name: player.name,
-                                playerId: player.id,
-                                position: player.position,
-                                team: player.proTeam || 'FA'
-                            });
-                        }
-                    });
-                }
-                
-                statusDiv.innerHTML = `✅ Found ${pitchers.length} pitchers on your roster. Now fetching game data...`;
-                
-                // Now we need to populate the form with these pitchers
                 // Clear existing entries
                 const container = document.getElementById('pitcherList');
                 container.innerHTML = '';
                 
                 const teamName = document.getElementById('fantraxTeamSelect').selectedOptions[0].text;
                 
-                // For each pitcher, we'll add them for each day of the week
-                // In reality, we'd need to check Fantrax's lineup data to see which days they were active
-                // For now, let's add each pitcher once with the week start date
+                // Add each pitcher to the form
                 pitchers.forEach(p => {
                     const div = document.createElement('div');
                     div.className = 'pitcher-entry';
+                    const playerName = p.name || p.playerName || 'Unknown';
+                    const mlbTeam = p.team || p.proTeam || p.mlbTeam || '';
+                    
                     div.innerHTML = `
                         <div class="form-group"><input type="text" class="fantasy-team" value="${teamName}"></div>
                         <div class="form-group" style="position: relative;">
-                            <input type="text" class="pitcher-name" value="${p.name}" data-player-id="${p.playerId}">
+                            <input type="text" class="pitcher-name" value="${playerName}">
                             <div class="search-results" style="display: none;"></div>
                         </div>
-                        <div class="form-group"><input type="text" class="mlb-team" value="${p.team}" maxlength="3"></div>
+                        <div class="form-group"><input type="text" class="mlb-team" value="${mlbTeam}" maxlength="3"></div>
                         <div class="form-group"><input type="date" class="game-date" min="${weekStart}" max="${weekEnd}" value="${weekStart}"></div>
                         <button class="btn btn-danger" onclick="removeRow(this)">✕</button>
                     `;
                     container.appendChild(div);
                 });
                 
-                statusDiv.innerHTML = `✅ Loaded ${pitchers.length} pitchers! Review dates and click "Fetch Games" to get stats.`;
+                statusDiv.innerHTML = `✅ Loaded ${pitchers.length} pitchers! Adjust dates as needed, then click "Fetch Games".`;
                 
             } catch(e) {
                 console.error('Error loading from Fantrax:', e);
-                statusDiv.innerHTML = '❌ Error: ' + e.message;
+                statusDiv.innerHTML = `❌ Error: ${e.message}<br><small>You can still add pitchers manually below.</small>`;
             }
         }
         
