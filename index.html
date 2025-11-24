@@ -621,13 +621,54 @@
             
             let csv = 'Matchup Period,Max Starts,Max Relief\n';
             csv += `"${ws} to ${we}",${maxS},${maxR}\n\n`;
-            csv += 'Fantasy Team,Pitcher,MLB Team,Game Date,Game Time (ET),Type,Status,IP,ER,K,BB,H,HB,SV,HLD,QS,Points,Points to Remove\n';
             
             const teams = {};
             gameData.forEach(g => {
                 if (!teams[g.fantasyTeam]) teams[g.fantasyTeam] = [];
                 teams[g.fantasyTeam].push(g);
             });
+            
+            // Add summary section FIRST
+            csv += 'Summary by Team\n';
+            csv += 'Fantasy Team,Original Fantrax Points (All Appearances),Total Points to Remove,Corrected Net Points\n';
+            
+            Object.keys(teams).sort().forEach(tn => {
+                const apps = teams[tn].sort((a,b) => a.gameTime - b.gameTime);
+                let sp = 0, rp = 0, totalAllPoints = 0, totalRemoved = 0, totalCounted = 0;
+                
+                apps.forEach(a => {
+                    if (a.type === 'SP') sp++; else rp++;
+                    const ok = (a.type === 'SP' && sp <= maxS) || (a.type === 'RP' && rp <= maxR);
+                    
+                    const stats = a.stats || {};
+                    const ip = parseIP(stats.inningsPitched || 0);
+                    const er = parseInt(stats.earnedRuns || 0);
+                    const k = parseInt(stats.strikeOuts || 0);
+                    const bb = parseInt(stats.baseOnBalls || 0);
+                    const h = parseInt(stats.hits || 0);
+                    const hb = parseInt(stats.hitBatsmen || 0);
+                    const sv = parseInt(stats.saves || 0);
+                    const hld = parseInt(stats.holds || 0);
+                    const qs = (ip >= 6 && er <= 3) ? 1 : 0;
+                    
+                    const points = (ip*1.5) + (er*-2) + (k*0.75) + (bb*-0.25) + (h*-0.25) + (hb*-0.25) + (sv*1) + (hld*1) + (qs*1);
+                    
+                    // Add to total (what Fantrax shows - includes everything)
+                    totalAllPoints += points;
+                    
+                    if (ok) {
+                        totalCounted += points;
+                    } else {
+                        totalRemoved += points;
+                    }
+                });
+                
+                csv += `"${tn}",${totalAllPoints.toFixed(2)},${totalRemoved.toFixed(2)},${totalCounted.toFixed(2)}\n`;
+            });
+            
+            // Now add detailed breakdown
+            csv += '\n\nDetailed Breakdown by Appearance\n';
+            csv += 'Fantasy Team,Pitcher,MLB Team,Game Date,Game Time (ET),Type,Status,Points,Points to Remove,IP,ER,K,BB,H,HB,SV,HLD,QS\n';
             
             Object.keys(teams).sort().forEach(tn => {
                 const apps = teams[tn].sort((a,b) => a.gameTime - b.gameTime);
@@ -657,44 +698,9 @@
                     const time = a.gameTime.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit', hour12: true});
                     
                     csv += `"${tn}","${a.name}","${a.mlbTeam}","${date}","${time}","${a.type}","${ok?'COUNTS':'EXCLUDED'}",`;
-                    csv += `${stats.inningsPitched||0},${er},${k},${bb},${h},${hb},${sv},${hld},${qs},${countedPoints.toFixed(2)},${removedPoints.toFixed(2)}\n`;
+                    csv += `${countedPoints.toFixed(2)},${removedPoints.toFixed(2)},`;
+                    csv += `${stats.inningsPitched||0},${er},${k},${bb},${h},${hb},${sv},${hld},${qs}\n`;
                 });
-            });
-            
-            // Add summary section
-            csv += '\n\nSummary by Team\n';
-            csv += 'Fantasy Team,Total Points (Counted),Total Points to Remove,Net Points\n';
-            
-            Object.keys(teams).sort().forEach(tn => {
-                const apps = teams[tn].sort((a,b) => a.gameTime - b.gameTime);
-                let sp = 0, rp = 0, totalCounted = 0, totalRemoved = 0;
-                
-                apps.forEach(a => {
-                    if (a.type === 'SP') sp++; else rp++;
-                    const ok = (a.type === 'SP' && sp <= maxS) || (a.type === 'RP' && rp <= maxR);
-                    
-                    const stats = a.stats || {};
-                    const ip = parseIP(stats.inningsPitched || 0);
-                    const er = parseInt(stats.earnedRuns || 0);
-                    const k = parseInt(stats.strikeOuts || 0);
-                    const bb = parseInt(stats.baseOnBalls || 0);
-                    const h = parseInt(stats.hits || 0);
-                    const hb = parseInt(stats.hitBatsmen || 0);
-                    const sv = parseInt(stats.saves || 0);
-                    const hld = parseInt(stats.holds || 0);
-                    const qs = (ip >= 6 && er <= 3) ? 1 : 0;
-                    
-                    const points = (ip*1.5) + (er*-2) + (k*0.75) + (bb*-0.25) + (h*-0.25) + (hb*-0.25) + (sv*1) + (hld*1) + (qs*1);
-                    
-                    if (ok) {
-                        totalCounted += points;
-                    } else {
-                        totalRemoved += points;
-                    }
-                });
-                
-                const netPoints = totalCounted; // Net is just the counted points
-                csv += `"${tn}",${totalCounted.toFixed(2)},${totalRemoved.toFixed(2)},${netPoints.toFixed(2)}\n`;
             });
             
             const blob = new Blob([csv], {type: 'text/csv'});
