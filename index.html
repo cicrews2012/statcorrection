@@ -1326,6 +1326,12 @@
                             <div class="value">${pitcherBreakdowns.length}</div>
                         </div>
                     </div>
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button class="btn btn-success" onclick="exportToCSV()" style="padding: 12px 30px; font-size: 15px;">
+                            📊 Export to CSV
+                        </button>
+                        <p style="font-size: 12px; color: rgba(255,255,255,0.8); margin-top: 8px;">Download detailed breakdown for league records</p>
+                    </div>
                 </div>
                 
                 <h4 style="margin-top: 20px; margin-bottom: 10px;">Detailed Breakdown:</h4>
@@ -1363,6 +1369,159 @@
             
             document.getElementById('finalResults').innerHTML = html;
             document.getElementById('finalResults').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function exportToCSV() {
+            const teamName = document.getElementById('teamName').value;
+            const weekStart = document.getElementById('weekStart').value;
+            const weekEnd = document.getElementById('weekEnd').value;
+            
+            // Format dates for filename
+            const startDate = new Date(weekStart);
+            const endDate = new Date(weekEnd);
+            const dateRange = `${startDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}-${endDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
+            const filename = `${teamName.replace(/[^a-z0-9]/gi, '_')}_${dateRange.replace(/[^a-z0-9]/gi, '_')}.csv`;
+            
+            // Get all pitcher groups
+            const metadataElements = document.querySelectorAll('.pitcher-metadata');
+            const maxStarts = parseInt(document.getElementById('maxStarts').value) || 7;
+            const maxReliefApp = parseInt(document.getElementById('maxReliefApp').value) || 10;
+            
+            // CSV Headers
+            let csv = 'Team Name,Matchup Period,Max Starts,Max Relief Appearances\n';
+            csv += `"${teamName}","${weekStart} to ${weekEnd}",${maxStarts},${maxReliefApp}\n\n`;
+            
+            csv += 'Pitcher,Game Date,Game Time,Type,Status,IP,ER,K,BB,H,HB,QS,SV,HLD,Points\n';
+            
+            // Add each appearance
+            gameTimesData.forEach((pitcher, index) => {
+                let spCount = gameTimesData.slice(0, index + 1).filter(p => p.type === 'SP').length;
+                let rpCount = gameTimesData.slice(0, index + 1).filter(p => p.type === 'RP').length;
+                
+                let counts = false;
+                if (pitcher.type === 'SP' && spCount <= maxStarts) counts = true;
+                if (pitcher.type === 'RP' && rpCount <= maxReliefApp) counts = true;
+                
+                const status = counts ? 'COUNTS' : 'EXCLUDED';
+                const gameDate = pitcher.gameDate ? pitcher.gameDate.toLocaleDateString('en-US') : 'N/A';
+                const gameTime = pitcher.gameDate ? pitcher.gameDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'N/A';
+                
+                const stats = pitcher.stats || {};
+                const ip = stats.inningsPitched || 0;
+                const er = stats.earnedRuns || 0;
+                const k = stats.strikeOuts || 0;
+                const bb = stats.baseOnBalls || 0;
+                const h = stats.hits || 0;
+                const hb = stats.hitBatsmen || 0;
+                const qs = (parseFloat(ip) >= 6 && er <= 3) ? 1 : 0;
+                const sv = stats.saves || 0;
+                const hld = stats.holds || 0;
+                
+                // Calculate points for this appearance
+                const ipParsed = parseIPValue(ip.toString());
+                const points = (ipParsed * 1.5) + (er * -2) + (k * 0.75) + (bb * -0.25) + (h * -0.25) + (hb * -0.25) + (qs * 1) + (sv * 1) + (hld * 1);
+                
+                csv += `"${pitcher.name}","${gameDate}","${gameTime}","${pitcher.type}","${status}",${ip},${er},${k},${bb},${h},${hb},${qs},${sv},${hld},${counts ? points.toFixed(2) : 0}\n`;
+            });
+            
+            // Add summary section
+            csv += '\n';
+            csv += 'Summary by Pitcher\n';
+            csv += 'Pitcher,Total Appearances,Counted Appearances,Total Points (Counted Only),Notes\n';
+            
+            metadataElements.forEach((metaElement) => {
+                const groupIndex = metaElement.dataset.group;
+                const pitcherData = JSON.parse(metaElement.value);
+                
+                const ipRaw = document.querySelector(`input.stat-ip[data-group="${groupIndex}"]`).value;
+                const ip = parseIPValue(ipRaw);
+                const er = parseFloat(document.querySelector(`input.stat-er[data-group="${groupIndex}"]`).value) || 0;
+                const k = parseFloat(document.querySelector(`input.stat-k[data-group="${groupIndex}"]`).value) || 0;
+                const bb = parseFloat(document.querySelector(`input.stat-bb[data-group="${groupIndex}"]`).value) || 0;
+                const h = parseFloat(document.querySelector(`input.stat-h[data-group="${groupIndex}"]`).value) || 0;
+                const hb = parseFloat(document.querySelector(`input.stat-hb[data-group="${groupIndex}"]`).value) || 0;
+                const qs = parseFloat(document.querySelector(`input.stat-qs[data-group="${groupIndex}"]`).value) || 0;
+                const sv = parseFloat(document.querySelector(`input.stat-sv[data-group="${groupIndex}"]`).value) || 0;
+                const hld = parseFloat(document.querySelector(`input.stat-hld[data-group="${groupIndex}"]`).value) || 0;
+                
+                const totalPts = (ip * 1.5) + (er * -2) + (k * 0.75) + (bb * -0.25) + (h * -0.25) + (hb * -0.25) + (qs * 1) + (sv * 1) + (hld * 1);
+                const countedAppearances = pitcherData.appearances.filter(a => a.counts);
+                const excludedAppearances = pitcherData.appearances.filter(a => !a.counts);
+                
+                let countedPoints = totalPts;
+                if (countedAppearances.length > 0 && excludedAppearances.length > 0) {
+                    const countedIP = countedAppearances.reduce((sum, app) => sum + (parseFloat(app.stats?.inningsPitched) || 0), 0);
+                    const excludedIP = excludedAppearances.reduce((sum, app) => sum + (parseFloat(app.stats?.inningsPitched) || 0), 0);
+                    
+                    if (countedIP + excludedIP > 0) {
+                        const countedRatio = countedIP / (countedIP + excludedIP);
+                        countedPoints = totalPts * countedRatio;
+                    } else {
+                        countedPoints = totalPts * (countedAppearances.length / pitcherData.appearances.length);
+                    }
+                } else if (countedAppearances.length === 0) {
+                    countedPoints = 0;
+                }
+                
+                const note = countedAppearances.length === pitcherData.appearances.length ? 'All appearances counted' :
+                            countedAppearances.length === 0 ? 'All appearances over limit' :
+                            `${countedAppearances.length} of ${pitcherData.appearances.length} counted (prorated)`;
+                
+                csv += `"${pitcherData.name}",${pitcherData.appearances.length},${countedAppearances.length},${countedPoints.toFixed(2)},"${note}"\n`;
+            });
+            
+            // Calculate final total
+            let finalTotal = 0;
+            metadataElements.forEach((metaElement) => {
+                const groupIndex = metaElement.dataset.group;
+                const pitcherData = JSON.parse(metaElement.value);
+                
+                const ipRaw = document.querySelector(`input.stat-ip[data-group="${groupIndex}"]`).value;
+                const ip = parseIPValue(ipRaw);
+                const er = parseFloat(document.querySelector(`input.stat-er[data-group="${groupIndex}"]`).value) || 0;
+                const k = parseFloat(document.querySelector(`input.stat-k[data-group="${groupIndex}"]`).value) || 0;
+                const bb = parseFloat(document.querySelector(`input.stat-bb[data-group="${groupIndex}"]`).value) || 0;
+                const h = parseFloat(document.querySelector(`input.stat-h[data-group="${groupIndex}"]`).value) || 0;
+                const hb = parseFloat(document.querySelector(`input.stat-hb[data-group="${groupIndex}"]`).value) || 0;
+                const qs = parseFloat(document.querySelector(`input.stat-qs[data-group="${groupIndex}"]`).value) || 0;
+                const sv = parseFloat(document.querySelector(`input.stat-sv[data-group="${groupIndex}"]`).value) || 0;
+                const hld = parseFloat(document.querySelector(`input.stat-hld[data-group="${groupIndex}"]`).value) || 0;
+                
+                const totalPts = (ip * 1.5) + (er * -2) + (k * 0.75) + (bb * -0.25) + (h * -0.25) + (hb * -0.25) + (qs * 1) + (sv * 1) + (hld * 1);
+                const countedAppearances = pitcherData.appearances.filter(a => a.counts);
+                const excludedAppearances = pitcherData.appearances.filter(a => !a.counts);
+                
+                let countedPoints = totalPts;
+                if (countedAppearances.length > 0 && excludedAppearances.length > 0) {
+                    const countedIP = countedAppearances.reduce((sum, app) => sum + (parseFloat(app.stats?.inningsPitched) || 0), 0);
+                    const excludedIP = excludedAppearances.reduce((sum, app) => sum + (parseFloat(app.stats?.inningsPitched) || 0), 0);
+                    
+                    if (countedIP + excludedIP > 0) {
+                        const countedRatio = countedIP / (countedIP + excludedIP);
+                        countedPoints = totalPts * countedRatio;
+                    } else {
+                        countedPoints = totalPts * (countedAppearances.length / pitcherData.appearances.length);
+                    }
+                } else if (countedAppearances.length === 0) {
+                    countedPoints = 0;
+                }
+                
+                finalTotal += countedPoints;
+            });
+            
+            csv += '\n';
+            csv += `FINAL CORRECTED TOTAL,,,${finalTotal.toFixed(2)}\n`;
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', filename);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
         
         // Auto-create stats inputs when tab 3 is opened after game times are fetched
