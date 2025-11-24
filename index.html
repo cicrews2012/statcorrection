@@ -125,7 +125,7 @@
         
         .pitcher-entry {
             display: grid;
-            grid-template-columns: 2fr 1fr 1.5fr auto;
+            grid-template-columns: 1.5fr 2fr 1fr 1.5fr auto;
             gap: 10px;
             margin-bottom: 10px;
             align-items: end;
@@ -365,9 +365,9 @@
         <!-- Tab 1: Pitcher Input -->
         <div class="tab-content active" id="tab1">
             <div class="alert alert-info">
-                <strong>Step 1:</strong> Add each ACTIVE pitcher appearance during the week (only count games where the pitcher was in your active roster, not on bench).
+                <strong>Step 1:</strong> Add each ACTIVE pitcher appearance during the week for ALL teams that exceeded limits. Add the fantasy team name for each pitcher.
                 <br><br>
-                <strong>Important:</strong> If a pitcher was active multiple times, add them multiple times with different dates. The tool will fetch stats for each specific game.
+                <strong>Important:</strong> If a pitcher was active multiple times, add them multiple times with different dates.
             </div>
             
             <div class="input-section">
@@ -386,10 +386,6 @@
                         <label>Week End</label>
                         <input type="date" id="weekEnd" onchange="updateGameDateConstraints()">
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Team Name</label>
-                    <input type="text" id="teamName" placeholder="e.g., John's Team">
                 </div>
             </div>
             
@@ -410,16 +406,20 @@
             
             <div class="input-section">
                 <h3>Add Active Appearances</h3>
-                <p style="font-size: 13px; color: #6b7280; margin-bottom: 15px;">Add one row for each game where a pitcher was in your active lineup (not on bench)</p>
+                <p style="font-size: 13px; color: #6b7280; margin-bottom: 15px;">Add one row for each game where a pitcher was in an active lineup (not on bench). Include all teams with overages.</p>
                 <div id="pitcherEntries">
                     <div class="pitcher-entry">
+                        <div class="form-group">
+                            <label>Fantasy Team</label>
+                            <input type="text" class="team-name" placeholder="e.g., John's Team">
+                        </div>
                         <div class="form-group">
                             <label>Pitcher Name</label>
                             <input type="text" class="pitcher-name" placeholder="Start typing name..." autocomplete="off" oninput="searchPitcher(this)">
                             <div class="search-results" style="display: none;"></div>
                         </div>
                         <div class="form-group">
-                            <label>Team</label>
+                            <label>MLB Team</label>
                             <input type="text" class="pitcher-team" placeholder="NYY" maxlength="3">
                         </div>
                         <div class="form-group">
@@ -580,9 +580,8 @@
         });
         
         function resetForm() {
-            if (confirm('Clear all data and start over for a new team?')) {
+            if (confirm('Clear all data and start over for a new week?')) {
                 // Reset all form fields
-                document.getElementById('teamName').value = '';
                 
                 // Keep date fields but allow changing
                 
@@ -596,12 +595,16 @@
                 newEntry.className = 'pitcher-entry';
                 newEntry.innerHTML = `
                     <div class="form-group">
+                        <label>Fantasy Team</label>
+                        <input type="text" class="team-name" placeholder="e.g., John's Team">
+                    </div>
+                    <div class="form-group">
                         <label>Pitcher Name</label>
                         <input type="text" class="pitcher-name" placeholder="Start typing name..." autocomplete="off" oninput="searchPitcher(this)">
                         <div class="search-results" style="display: none;"></div>
                     </div>
                     <div class="form-group">
-                        <label>Team</label>
+                        <label>MLB Team</label>
                         <input type="text" class="pitcher-team" placeholder="NYY" maxlength="3">
                     </div>
                     <div class="form-group">
@@ -682,6 +685,9 @@
             newRow.className = 'pitcher-entry';
             newRow.innerHTML = `
                 <div class="form-group">
+                    <input type="text" class="team-name" placeholder="e.g., John's Team">
+                </div>
+                <div class="form-group">
                     <input type="text" class="pitcher-name" placeholder="Start typing name..." autocomplete="off" oninput="searchPitcher(this)">
                     <div class="search-results" style="display: none;"></div>
                 </div>
@@ -719,16 +725,19 @@
             pitchers = [];
             const entries = document.querySelectorAll('.pitcher-entry');
             entries.forEach(entry => {
+                const fantasyTeam = entry.querySelector('.team-name').value;
                 const nameInput = entry.querySelector('.pitcher-name');
                 const name = nameInput.value;
                 const team = entry.querySelector('.pitcher-team').value;
                 const gameDate = entry.querySelector('.game-date').value;
                 const playerId = nameInput.dataset.playerId;
                 
-                if (name && team && gameDate) {
+                if (fantasyTeam && name && team && gameDate) {
                     // Include even if no playerId - we'll try to find them by name
-                    pitchers.push({ name, team, gameDate, playerId: playerId || null });
-                } else if (name && team && !gameDate) {
+                    pitchers.push({ fantasyTeam, name, team, gameDate, playerId: playerId || null });
+                } else if (name && team && gameDate && !fantasyTeam) {
+                    alert(`Please enter fantasy team name for ${name}`);
+                } else if (fantasyTeam && name && team && !gameDate) {
                     alert(`Please select a game date for ${name}`);
                 }
             });
@@ -788,7 +797,7 @@
                     return a.gameDate - b.gameDate;
                 });
                 
-                displayGameTimes(teamName);
+                displayGameTimes();
                 
             } catch (error) {
                 document.getElementById('gameTimesResults').innerHTML = `
@@ -929,96 +938,153 @@
             }
         }
         
-        function displayGameTimes(teamName) {
+        function displayGameTimes() {
             const maxStarts = parseInt(document.getElementById('maxStarts').value) || 7;
             const maxReliefApp = parseInt(document.getElementById('maxReliefApp').value) || 10;
             
-            let spCount = 0;
-            let rpCount = 0;
+            // Group appearances by fantasy team
+            const teamGroups = {};
+            gameTimesData.forEach((pitcher) => {
+                if (!teamGroups[pitcher.fantasyTeam]) {
+                    teamGroups[pitcher.fantasyTeam] = [];
+                }
+                teamGroups[pitcher.fantasyTeam].push(pitcher);
+            });
+            
+            // Sort each team's appearances chronologically
+            Object.keys(teamGroups).forEach(team => {
+                teamGroups[team].sort((a, b) => {
+                    if (!a.gameDate) return 1;
+                    if (!b.gameDate) return -1;
+                    return a.gameDate - b.gameDate;
+                });
+            });
             
             let html = `
                 <div class="summary-card">
-                    <h3>${teamName} - Pitcher Usage (Chronological Order)</h3>
+                    <h3>Pitcher Usage by Team (Chronological Order)</h3>
                     <p>Limits: ${maxStarts} Starts (SP) | ${maxReliefApp} Relief Appearances (RP)</p>
-                    <p style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Note: SP/RP type auto-detected from game data</p>
+                    <p style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Click on a team to expand/collapse details</p>
                 </div>
-                
-                <table class="results-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Pitcher</th>
-                            <th>Team</th>
-                            <th>Type</th>
-                            <th>Game Time (ET)</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
             `;
             
-            gameTimesData.forEach((pitcher, index) => {
-                let status = '';
-                let rowClass = '';
+            // Create expandable section for each team
+            Object.keys(teamGroups).sort().forEach((fantasyTeam, teamIndex) => {
+                const teamPitchers = teamGroups[fantasyTeam];
+                let spCount = 0;
+                let rpCount = 0;
                 
-                if (pitcher.type === 'SP') {
-                    spCount++;
-                    if (spCount <= maxStarts) {
-                        status = `✓ Counts (SP ${spCount}/${maxStarts})`;
-                        rowClass = 'counted';
-                    } else {
-                        status = `✗ Excluded (Over SP limit)`;
-                        rowClass = 'excluded';
-                    }
-                } else {
-                    rpCount++;
-                    if (rpCount <= maxReliefApp) {
-                        status = `✓ Counts (RP ${rpCount}/${maxReliefApp})`;
-                        rowClass = 'counted';
-                    } else {
-                        status = `✗ Excluded (Over RP limit)`;
-                        rowClass = 'excluded';
-                    }
-                }
+                // Count SP and RP for this team
+                teamPitchers.forEach(pitcher => {
+                    if (pitcher.type === 'SP') spCount++;
+                    else rpCount++;
+                });
                 
-                const timeStr = pitcher.gameDate ? 
-                    pitcher.gameDate.toLocaleString('en-US', { 
-                        weekday: 'short',
-                        month: 'short', 
-                        day: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        timeZone: 'America/New_York'
-                    }) : new Date(pitcher.gameDate).toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric'
-                    });
-                
-                const typeDisplay = pitcher.autoDetected 
-                    ? `${pitcher.type} <span style="font-size: 11px; color: #10b981;">●</span>` 
-                    : `${pitcher.type} <span style="font-size: 11px; color: #6b7280;">○</span>`;
+                const overSP = spCount > maxStarts;
+                const overRP = rpCount > maxReliefApp;
+                const hasOverage = overSP || overRP;
                 
                 html += `
-                    <tr class="${rowClass}">
-                        <td>${index + 1}</td>
-                        <td><strong>${pitcher.name}</strong></td>
-                        <td>${pitcher.team}</td>
-                        <td>${typeDisplay}</td>
-                        <td>${timeStr}</td>
-                        <td>${status}</td>
-                    </tr>
+                    <div style="background: #f9fafb; border-radius: 8px; margin-bottom: 15px; overflow: hidden; border: 2px solid ${hasOverage ? '#f59e0b' : '#e5e7eb'};">
+                        <div onclick="toggleTeam(${teamIndex})" style="padding: 20px; cursor: pointer; background: ${hasOverage ? '#fffbeb' : 'white'}; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 style="margin: 0; font-size: 18px; color: #1f2937;">
+                                    ${fantasyTeam}
+                                    ${hasOverage ? '<span style="color: #f59e0b; font-size: 14px; margin-left: 10px;">⚠️ OVERAGE</span>' : ''}
+                                </h3>
+                                <div style="font-size: 13px; color: #6b7280; margin-top: 5px;">
+                                    SP: ${spCount}/${maxStarts} ${overSP ? '(OVER)' : ''} | 
+                                    RP: ${rpCount}/${maxReliefApp} ${overRP ? '(OVER)' : ''} | 
+                                    ${teamPitchers.length} total appearances
+                                </div>
+                            </div>
+                            <div style="font-size: 24px; color: #9ca3af;" id="arrow-${teamIndex}">▼</div>
+                        </div>
+                        
+                        <div id="team-${teamIndex}" style="display: block;">
+                            <table class="results-table" style="margin: 0;">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Pitcher</th>
+                                        <th>MLB Team</th>
+                                        <th>Type</th>
+                                        <th>Game Time (ET)</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                
+                let teamSP = 0;
+                let teamRP = 0;
+                
+                teamPitchers.forEach((pitcher, index) => {
+                    let status = '';
+                    let rowClass = '';
+                    
+                    if (pitcher.type === 'SP') {
+                        teamSP++;
+                        if (teamSP <= maxStarts) {
+                            status = `✓ Counts (SP ${teamSP}/${maxStarts})`;
+                            rowClass = 'counted';
+                        } else {
+                            status = `✗ Excluded (Over SP limit)`;
+                            rowClass = 'excluded';
+                        }
+                    } else {
+                        teamRP++;
+                        if (teamRP <= maxReliefApp) {
+                            status = `✓ Counts (RP ${teamRP}/${maxReliefApp})`;
+                            rowClass = 'counted';
+                        } else {
+                            status = `✗ Excluded (Over RP limit)`;
+                            rowClass = 'excluded';
+                        }
+                    }
+                    
+                    const timeStr = pitcher.gameDate ? 
+                        pitcher.gameDate.toLocaleString('en-US', { 
+                            weekday: 'short',
+                            month: 'short', 
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            timeZone: 'America/New_York'
+                        }) : new Date(pitcher.gameDate).toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric'
+                        });
+                    
+                    const typeDisplay = pitcher.autoDetected 
+                        ? `${pitcher.type} <span style="font-size: 11px; color: #10b981;">●</span>` 
+                        : `${pitcher.type} <span style="font-size: 11px; color: #6b7280;">○</span>`;
+                    
+                    html += `
+                        <tr class="${rowClass}">
+                            <td>${index + 1}</td>
+                            <td><strong>${pitcher.name}</strong></td>
+                            <td>${pitcher.team}</td>
+                            <td>${typeDisplay}</td>
+                            <td>${timeStr}</td>
+                            <td>${status}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                                </tbody>
+                            </table>
+                            <div style="padding: 15px; font-size: 12px; color: #6b7280; background: white;">
+                                <span style="color: #10b981;">●</span> = Auto-detected from game data &nbsp;&nbsp;
+                                <span style="color: #6b7280;">○</span> = Manual selection
+                            </div>
+                        </div>
+                    </div>
                 `;
             });
             
             html += `
-                    </tbody>
-                </table>
-                
-                <div style="margin-top: 15px; font-size: 12px; color: #6b7280;">
-                    <span style="color: #10b981;">●</span> = Auto-detected from game data &nbsp;&nbsp;
-                    <span style="color: #6b7280;">○</span> = Manual selection
-                </div>
-                
                 <div style="margin-top: 30px; text-align: center;">
                     <button class="btn btn-primary btn-lg" onclick="switchTab(2)" style="padding: 15px 40px; font-size: 16px;">
                         Continue to Stats Entry →
@@ -1029,31 +1095,222 @@
             document.getElementById('gameTimesResults').innerHTML = html;
         }
         
+        function toggleTeam(teamIndex) {
+            const content = document.getElementById(`team-${teamIndex}`);
+            const arrow = document.getElementById(`arrow-${teamIndex}`);
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                arrow.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                arrow.textContent = '▶';
+            }
+        }
+        
         switchTab(2); // Prepare stats tab when game times are ready
         
         function createStatsInputs() {
-            const teamName = document.getElementById('teamName').value;
             const maxStarts = parseInt(document.getElementById('maxStarts').value) || 7;
             const maxReliefApp = parseInt(document.getElementById('maxReliefApp').value) || 10;
             
-            // Group appearances by pitcher
-            const pitcherGroups = {};
+            // Group appearances by fantasy team, then by pitcher
+            const teamGroups = {};
+            
             gameTimesData.forEach((appearance, index) => {
-                const key = `${appearance.name}-${appearance.playerId}`;
-                if (!pitcherGroups[key]) {
-                    pitcherGroups[key] = {
-                        name: appearance.name,
-                        team: appearance.team,
-                        appearances: []
+                if (!teamGroups[appearance.fantasyTeam]) {
+                    teamGroups[appearance.fantasyTeam] = {
+                        appearances: [],
+                        pitcherGroups: {}
                     };
                 }
                 
-                let spCount = gameTimesData.slice(0, index + 1).filter(p => p.type === 'SP').length;
-                let rpCount = gameTimesData.slice(0, index + 1).filter(p => p.type === 'RP').length;
+                teamGroups[appearance.fantasyTeam].appearances.push({...appearance, globalIndex: index});
+            });
+            
+            // For each team, calculate counts and group by pitcher
+            Object.keys(teamGroups).forEach(fantasyTeam => {
+                const teamData = teamGroups[fantasyTeam];
                 
-                let counts = false;
-                if (appearance.type === 'SP' && spCount <= maxStarts) counts = true;
-                if (appearance.type === 'RP' && rpCount <= maxReliefApp) counts = true;
+                // Sort chronologically
+                teamData.appearances.sort((a, b) => {
+                    if (!a.gameDate) return 1;
+                    if (!b.gameDate) return -1;
+                    return a.gameDate - b.gameDate;
+                });
+                
+                // Calculate which count
+                let spCount = 0;
+                let rpCount = 0;
+                
+                teamData.appearances.forEach(appearance => {
+                    if (appearance.type === 'SP') {
+                        spCount++;
+                        appearance.counts = spCount <= maxStarts;
+                        appearance.spCount = spCount;
+                    } else {
+                        rpCount++;
+                        appearance.counts = rpCount <= maxReliefApp;
+                        appearance.rpCount = rpCount;
+                    }
+                    
+                    // Group by pitcher
+                    const key = `${appearance.name}-${appearance.playerId}`;
+                    if (!teamData.pitcherGroups[key]) {
+                        teamData.pitcherGroups[key] = {
+                            name: appearance.name,
+                            team: appearance.team,
+                            appearances: []
+                        };
+                    }
+                    teamData.pitcherGroups[key].appearances.push(appearance);
+                });
+            });
+            
+            let html = `
+                <div class="summary-card">
+                    <h3>Enter Pitcher Stats by Team</h3>
+                    <p>Stats automatically populated from MLB API. Click on a team to expand/collapse.</p>
+                </div>
+            `;
+            
+            let globalGroupIndex = 0;
+            
+            // Create expandable sections for each team
+            Object.keys(teamGroups).sort().forEach((fantasyTeam, teamIndex) => {
+                const teamData = teamGroups[fantasyTeam];
+                const pitcherCount = Object.keys(teamData.pitcherGroups).length;
+                
+                html += `
+                    <div style="background: #f9fafb; border-radius: 8px; margin-bottom: 15px; overflow: hidden; border: 2px solid #667eea;">
+                        <div onclick="toggleStatsTeam(${teamIndex})" style="padding: 20px; cursor: pointer; background: white; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 style="margin: 0; font-size: 18px; color: #1f2937;">${fantasyTeam}</h3>
+                                <div style="font-size: 13px; color: #6b7280; margin-top: 5px;">${pitcherCount} pitcher${pitcherCount > 1 ? 's' : ''}, ${teamData.appearances.length} appearances</div>
+                            </div>
+                            <div style="font-size: 24px; color: #9ca3af;" id="stats-arrow-${teamIndex}">▼</div>
+                        </div>
+                        
+                        <div id="stats-team-${teamIndex}" style="display: block; padding: 20px; padding-top: 0;">
+                `;
+                
+                // Add pitchers for this team
+                Object.values(teamData.pitcherGroups).forEach(pitcher => {
+                    const countedAppearances = pitcher.appearances.filter(a => a.counts);
+                    const excludedAppearances = pitcher.appearances.filter(a => !a.counts);
+                    
+                    const allCount = countedAppearances.length === pitcher.appearances.length;
+                    const noneCount = countedAppearances.length === 0;
+                    
+                    let statusText = '';
+                    let borderColor = '';
+                    if (allCount) {
+                        statusText = `✓ ALL ${pitcher.appearances.length} APPEARANCE${pitcher.appearances.length > 1 ? 'S' : ''} COUNT`;
+                        borderColor = '#10b981';
+                    } else if (noneCount) {
+                        statusText = `✗ ALL ${pitcher.appearances.length} APPEARANCE${pitcher.appearances.length > 1 ? 'S' : ''} EXCLUDED`;
+                        borderColor = '#ef4444';
+                    } else {
+                        statusText = `⚠ ${countedAppearances.length} of ${pitcher.appearances.length} APPEARANCES COUNT`;
+                        borderColor = '#f59e0b';
+                    }
+                    
+                    html += `
+                        <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid ${borderColor};">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h4 style="margin: 0;">${pitcher.name} (${pitcher.team}) - ${pitcher.appearances.length} Appearance${pitcher.appearances.length > 1 ? 's' : ''}</h4>
+                                <span style="padding: 5px 15px; border-radius: 20px; font-weight: 600; font-size: 12px; background: ${allCount ? '#d1fae5' : noneCount ? '#fee2e2' : '#fef3c7'}; color: ${allCount ? '#065f46' : noneCount ? '#991b1b' : '#92400e'};">${statusText}</span>
+                            </div>
+                    `;
+                    
+                    // Show breakdown if multiple appearances
+                    if (pitcher.appearances.length > 1) {
+                        html += `<div style="font-size: 12px; color: #6b7280; margin-bottom: 15px; background: #f9fafb; padding: 10px; border-radius: 4px;">`;
+                        pitcher.appearances.forEach(app => {
+                            const date = new Date(app.gameTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                            const countLabel = app.type === 'SP' ? `SP ${app.spCount}/${maxStarts}` : `RP ${app.rpCount}/${maxReliefApp}`;
+                            const icon = app.counts ? '✓' : '✗';
+                            const color = app.counts ? '#10b981' : '#ef4444';
+                            html += `<div style="margin: 5px 0;"><span style="color: ${color};">${icon}</span> ${date} - ${app.type} (${countLabel})</div>`;
+                        });
+                        html += `</div>`;
+                    }
+                    
+                    // Combined stats input
+                    html += `
+                            <div class="stat-input" id="stats-group-${globalGroupIndex}">
+                                <div class="form-group">
+                                    <label>IP</label>
+                                    <input type="number" step="0.1" class="stat-ip" data-group="${globalGroupIndex}" value="${getCombinedStat(pitcher.appearances, 'inningsPitched')}">
+                                </div>
+                                <div class="form-group">
+                                    <label>ER</label>
+                                    <input type="number" class="stat-er" data-group="${globalGroupIndex}" value="${getCombinedStat(pitcher.appearances, 'earnedRuns')}">
+                                </div>
+                                <div class="form-group">
+                                    <label>K</label>
+                                    <input type="number" class="stat-k" data-group="${globalGroupIndex}" value="${getCombinedStat(pitcher.appearances, 'strikeOuts')}">
+                                </div>
+                                <div class="form-group">
+                                    <label>BB</label>
+                                    <input type="number" class="stat-bb" data-group="${globalGroupIndex}" value="${getCombinedStat(pitcher.appearances, 'baseOnBalls')}">
+                                </div>
+                                <div class="form-group">
+                                    <label>H</label>
+                                    <input type="number" class="stat-h" data-group="${globalGroupIndex}" value="${getCombinedStat(pitcher.appearances, 'hits')}">
+                                </div>
+                                <div class="form-group">
+                                    <label>HB</label>
+                                    <input type="number" class="stat-hb" data-group="${globalGroupIndex}" value="${getCombinedStat(pitcher.appearances, 'hitBatsmen')}">
+                                </div>
+                                <div class="form-group">
+                                    <label>QS</label>
+                                    <input type="number" class="stat-qs" data-group="${globalGroupIndex}" value="${getCombinedQS(pitcher.appearances)}" max="${pitcher.appearances.length}">
+                                </div>
+                                <div class="form-group">
+                                    <label>SV</label>
+                                    <input type="number" class="stat-sv" data-group="${globalGroupIndex}" value="${getCombinedStat(pitcher.appearances, 'saves')}">
+                                </div>
+                                <div class="form-group">
+                                    <label>HLD</label>
+                                    <input type="number" class="stat-hld" data-group="${globalGroupIndex}" value="${getCombinedStat(pitcher.appearances, 'holds')}">
+                                </div>
+                            </div>
+                            <input type="hidden" class="pitcher-metadata" data-group="${globalGroupIndex}" data-team="${fantasyTeam}" value='${JSON.stringify(pitcher)}'>
+                        </div>
+                    `;
+                    
+                    globalGroupIndex++;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                <button class="btn btn-success btn-lg" onclick="calculateTotals()" style="width: 100%; padding: 15px; font-size: 16px;">
+                    Calculate Corrected Totals for All Teams
+                </button>
+                <div id="finalResults" style="margin-top: 30px;"></div>
+            `;
+            
+            document.getElementById('statsResults').innerHTML = html;
+        }
+        
+        function toggleStatsTeam(teamIndex) {
+            const content = document.getElementById(`stats-team-${teamIndex}`);
+            const arrow = document.getElementById(`stats-arrow-${teamIndex}`);
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                arrow.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                arrow.textContent = '▶';
+            }
+        }
                 
                 pitcherGroups[key].appearances.push({
                     ...appearance,
@@ -1299,8 +1556,11 @@
                 
                 totalPoints += countedPoints;
                 
+                const fantasyTeam = metaElement.dataset.team;
+                
                 pitcherBreakdowns.push({
                     name: pitcherData.name,
+                    fantasyTeam: fantasyTeam,
                     totalAppearances: pitcherData.appearances.length,
                     countedAppearances: countedAppearances.length,
                     countedPoints: countedPoints,
@@ -1311,39 +1571,101 @@
                 });
             });
             
-            const teamName = document.getElementById('teamName').value;
+            // Group by fantasy team
+            const teamResults = {};
+            pitcherBreakdowns.forEach(p => {
+                if (!teamResults[p.fantasyTeam]) {
+                    teamResults[p.fantasyTeam] = {
+                        pitchers: [],
+                        totalPoints: 0
+                    };
+                }
+                teamResults[p.fantasyTeam].pitchers.push(p);
+                teamResults[p.fantasyTeam].totalPoints += p.countedPoints;
+            });
+            
+            const weekStart = document.getElementById('weekStart').value;
+            const weekEnd = document.getElementById('weekEnd').value;
+            const startDate = new Date(weekStart);
+            const endDate = new Date(weekEnd);
+            const dateRange = `${startDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} - ${endDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
             
             let html = `
                 <div class="summary-card">
-                    <h3>📊 ${teamName} - Corrected Totals</h3>
+                    <h3>📊 Corrected Totals - ${dateRange}</h3>
                     <div class="summary-stats">
                         <div class="stat-box">
-                            <div class="label">Total Points (Corrected)</div>
-                            <div class="value">${totalPoints.toFixed(2)}</div>
+                            <div class="label">Teams with Overages</div>
+                            <div class="value">${Object.keys(teamResults).length}</div>
                         </div>
                         <div class="stat-box">
-                            <div class="label">Pitchers</div>
+                            <div class="label">Total Pitchers</div>
                             <div class="value">${pitcherBreakdowns.length}</div>
                         </div>
                     </div>
                     <div style="margin-top: 20px; text-align: center;">
                         <button class="btn btn-success" onclick="exportToCSV()" style="padding: 12px 30px; font-size: 15px;">
-                            📊 Export to CSV
+                            📊 Export Full Report to CSV
                         </button>
-                        <p style="font-size: 12px; color: rgba(255,255,255,0.8); margin-top: 8px;">Download detailed breakdown for league records</p>
+                        <p style="font-size: 12px; color: rgba(255,255,255,0.8); margin-top: 8px;">Download detailed breakdown for all teams</p>
                     </div>
                 </div>
                 
-                <h4 style="margin-top: 20px; margin-bottom: 10px;">Detailed Breakdown:</h4>
+                <h4 style="margin-top: 20px; margin-bottom: 10px;">Results by Team:</h4>
             `;
             
-            pitcherBreakdowns.forEach(p => {
-                const borderColor = p.countedPoints === 0 ? '#ef4444' : 
-                                   p.excludedPoints > 0 ? '#f59e0b' : '#10b981';
+            // Display results grouped by team
+            Object.keys(teamResults).sort().forEach((fantasyTeam, teamIndex) => {
+                const teamData = teamResults[fantasyTeam];
                 
                 html += `
-                    <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid ${borderColor};">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <div style="background: #f9fafb; border-radius: 8px; margin-bottom: 20px; overflow: hidden; border: 2px solid #667eea;">
+                        <div onclick="toggleResultsTeam(${teamIndex})" style="padding: 20px; cursor: pointer; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 style="margin: 0; font-size: 18px;">${fantasyTeam}</h3>
+                                <div style="font-size: 14px; opacity: 0.9; margin-top: 5px;">${teamData.pitchers.length} pitcher${teamData.pitchers.length > 1 ? 's' : ''} | ${teamData.totalPoints.toFixed(2)} corrected points</div>
+                            </div>
+                            <div style="font-size: 24px;" id="results-arrow-${teamIndex}">▼</div>
+                        </div>
+                        
+                        <div id="results-team-${teamIndex}" style="display: block; padding: 20px; padding-top: 0;">
+                `;
+                
+                teamData.pitchers.forEach(p => {
+                    const borderColor = p.countedPoints === 0 ? '#ef4444' : 
+                                       p.excludedPoints > 0 ? '#f59e0b' : '#10b981';
+                    
+                    html += `
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid ${borderColor};">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                <div>
+                                    <strong style="font-size: 16px;">${p.name}</strong>
+                                    <div style="font-size: 13px; color: #6b7280; margin-top: 3px;">
+                                        IP: ${p.stats.ipRaw} | ER: ${p.stats.er} | K: ${p.stats.k} | BB: ${p.stats.bb} | H: ${p.stats.h}
+                                        ${p.stats.qs > 0 ? ` | QS: ${p.stats.qs}` : ''}
+                                        ${p.stats.sv > 0 ? ` | SV: ${p.stats.sv}` : ''}
+                                        ${p.stats.hld > 0 ? ` | HLD: ${p.stats.hld}` : ''}
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 20px; font-weight: 700; color: ${borderColor};">
+                                        ${p.countedPoints.toFixed(2)} pts
+                                    </div>
+                                    ${p.excludedPoints > 0 ? `<div style="font-size: 11px; color: #6b7280;">(${p.excludedPoints.toFixed(2)} excluded)</div>` : ''}
+                                </div>
+                            </div>
+                            <div style="font-size: 12px; color: #6b7280; background: #f9fafb; padding: 8px; border-radius: 4px;">
+                                ${p.explanation}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
                             <div>
                                 <strong style="font-size: 16px;">${p.name}</strong>
                                 <div style="font-size: 13px; color: #6b7280; margin-top: 3px;">
@@ -1371,8 +1693,20 @@
             document.getElementById('finalResults').scrollIntoView({ behavior: 'smooth' });
         }
         
+        function toggleResultsTeam(teamIndex) {
+            const content = document.getElementById(`results-team-${teamIndex}`);
+            const arrow = document.getElementById(`results-arrow-${teamIndex}`);
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                arrow.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                arrow.textContent = '▶';
+            }
+        }
+        
         function exportToCSV() {
-            const teamName = document.getElementById('teamName').value;
             const weekStart = document.getElementById('weekStart').value;
             const weekEnd = document.getElementById('weekEnd').value;
             
@@ -1380,7 +1714,7 @@
             const startDate = new Date(weekStart);
             const endDate = new Date(weekEnd);
             const dateRange = `${startDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}-${endDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
-            const filename = `${teamName.replace(/[^a-z0-9]/gi, '_')}_${dateRange.replace(/[^a-z0-9]/gi, '_')}.csv`;
+            const filename = `Pitcher_Overages_${dateRange.replace(/[^a-z0-9]/gi, '_')}.csv`;
             
             // Get all pitcher groups
             const metadataElements = document.querySelectorAll('.pitcher-metadata');
@@ -1388,10 +1722,10 @@
             const maxReliefApp = parseInt(document.getElementById('maxReliefApp').value) || 10;
             
             // CSV Headers
-            let csv = 'Team Name,Matchup Period,Max Starts,Max Relief Appearances\n';
-            csv += `"${teamName}","${weekStart} to ${weekEnd}",${maxStarts},${maxReliefApp}\n\n`;
+            let csv = 'Matchup Period,Max Starts,Max Relief Appearances\n';
+            csv += `"${weekStart} to ${weekEnd}",${maxStarts},${maxReliefApp}\n\n`;
             
-            csv += 'Pitcher,Game Date,Game Time,Type,Status,IP,ER,K,BB,H,HB,QS,SV,HLD,Points\n';
+            csv += 'Fantasy Team,Pitcher,Game Date,Game Time,Type,Status,IP,ER,K,BB,H,HB,QS,SV,HLD,Points\n';
             
             // Add each appearance
             gameTimesData.forEach((pitcher, index) => {
@@ -1421,13 +1755,13 @@
                 const ipParsed = parseIPValue(ip.toString());
                 const points = (ipParsed * 1.5) + (er * -2) + (k * 0.75) + (bb * -0.25) + (h * -0.25) + (hb * -0.25) + (qs * 1) + (sv * 1) + (hld * 1);
                 
-                csv += `"${pitcher.name}","${gameDate}","${gameTime}","${pitcher.type}","${status}",${ip},${er},${k},${bb},${h},${hb},${qs},${sv},${hld},${counts ? points.toFixed(2) : 0}\n`;
+                csv += `"${pitcher.fantasyTeam}","${pitcher.name}","${gameDate}","${gameTime}","${pitcher.type}","${status}",${ip},${er},${k},${bb},${h},${hb},${qs},${sv},${hld},${counts ? points.toFixed(2) : 0}\n`;
             });
             
             // Add summary section
             csv += '\n';
-            csv += 'Summary by Pitcher\n';
-            csv += 'Pitcher,Total Appearances,Counted Appearances,Total Points (Counted Only),Notes\n';
+            csv += 'Summary by Team and Pitcher\n';
+            csv += 'Fantasy Team,Pitcher,Total Appearances,Counted Appearances,Total Points (Counted Only),Notes\n';
             
             metadataElements.forEach((metaElement) => {
                 const groupIndex = metaElement.dataset.group;
@@ -1463,11 +1797,12 @@
                     countedPoints = 0;
                 }
                 
+                const fantasyTeam = metaElement.dataset.team;
                 const note = countedAppearances.length === pitcherData.appearances.length ? 'All appearances counted' :
                             countedAppearances.length === 0 ? 'All appearances over limit' :
                             `${countedAppearances.length} of ${pitcherData.appearances.length} counted (prorated)`;
                 
-                csv += `"${pitcherData.name}",${pitcherData.appearances.length},${countedAppearances.length},${countedPoints.toFixed(2)},"${note}"\n`;
+                csv += `"${fantasyTeam}","${pitcherData.name}",${pitcherData.appearances.length},${countedAppearances.length},${countedPoints.toFixed(2)},"${note}"\n`;
             });
             
             // Calculate final total
