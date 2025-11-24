@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantrax Pitcher Overage Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            background: #f5f5f5;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .tab:hover {
+            background: #e8e8e8;
+        }
+        
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .input-section {
+            margin-bottom: 30px;
+        }
+        
+        .input-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .week-input {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .form-group input, .form-group select {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .pitcher-entry {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: end;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            padding: 8px 12px;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .pitchers-list {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-info {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            color: #1e40af;
+        }
+        
+        .alert-warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            color: #92400e;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            color: #065f46;
+        }
+        
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .results-table th {
+            background: #f3f4f6;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .results-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .results-table tr:hover {
+            background: #f9fafb;
+        }
+        
+        .excluded {
+            background: #fee2e2 !important;
+            color: #991b1b;
+        }
+        
+        .counted {
+            background: #d1fae5 !important;
+            color: #065f46;
+        }
+        
+        .stat-input {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-card h3 {
+            margin-bottom: 10px;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-box {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 6px;
+        }
+        
+        .stat-box .label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .stat-box .value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .search-result-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .search-result-item:hover {
+            background: #f3f4f6;
+        }
+        
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .form-group {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚾ Fantrax Pitcher Overage Calculator</h1>
+            <p>Automatically track pitcher usage and calculate corrected stats when limits are exceeded</p>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab(0)">1. Pitcher Input</button>
+            <button class="tab" onclick="switchTab(1)">2. Game Times</button>
+            <button class="tab" onclick="switchTab(2)">3. Calculate Stats</button>
+        </div>
+        
+        <!-- Tab 1: Pitcher Input -->
+        <div class="tab-content active" id="tab1">
+            <div class="alert alert-info">
+                <strong>Step 1:</strong> Enter the week dates and add pitchers for the team that exceeded limits. The tool will fetch game times automatically.
+                <br><br>
+                <strong>Note:</strong> Only add each pitcher once - the tool will automatically find all their appearances during the week. SP/RP type will be auto-detected from game data.
+                <br><br>
+                <strong>Season Note:</strong> Auto-search and auto-stats work best during the regular season (late March - September). Pitcher search uses 2024 roster data until 2025 season begins.
+            </div>
+            
+            <div class="input-section">
+                <h3>Week Information</h3>
+                <div class="week-input">
+                    <div class="form-group">
+                        <label>Week Start (Monday)</label>
+                        <input type="date" id="weekStart" onchange="updateWeekEnd()">
+                    </div>
+                    <div class="form-group">
+                        <label>Week End (Sunday)</label>
+                        <input type="date" id="weekEnd" readonly>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Team Name</label>
+                    <input type="text" id="teamName" placeholder="e.g., John's Team">
+                </div>
+            </div>
+            
+            <div class="input-section">
+                <h3>Add Pitchers</h3>
+                <div id="pitcherEntries">
+                    <div class="pitcher-entry">
+                        <div class="form-group">
+                            <label>Pitcher Name</label>
+                            <input type="text" class="pitcher-name" placeholder="Start typing name..." autocomplete="off" oninput="searchPitcher(this)">
+                            <div class="search-results" style="display: none;"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Team</label>
+                            <input type="text" class="pitcher-team" placeholder="NYY" maxlength="3">
+                        </div>
+                        <div class="form-group">
+                            <label>Type</label>
+                            <select class="pitcher-type">
+                                <option value="SP">Start (SP)</option>
+                                <option value="RP">Relief (RP)</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-danger" onclick="removeRow(this)" style="margin-top: 20px;">Remove</button>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="addPitcherRow()" style="margin-top: 10px;">+ Add Another Pitcher</button>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <button class="btn btn-secondary btn-lg" onclick="resetForm()" style="padding: 15px; font-size: 16px;">
+                    🔄 Clear & Start Over
+                </button>
+                <button class="btn btn-primary btn-lg" onclick="fetchGameTimes()" style="padding: 15px; font-size: 16px;">
+                    Fetch Game Times & Continue →
+                </button>
+            </div>
+        </div>
+        
+        <!-- Tab 2: Game Times -->
+        <div class="tab-content" id="tab2">
+            <div class="alert alert-warning">
+                <strong>Step 2:</strong> Review the chronological order of pitchers. The tool has automatically fetched game start times.
+            </div>
+            
+            <div id="gameTimesResults">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Click "Fetch Game Times" in Step 1 to see results</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab 3: Calculate Stats -->
+        <div class="tab-content" id="tab3">
+            <div class="alert alert-success">
+                <strong>Step 3:</strong> Enter stats for each pitcher and calculate corrected totals. Only pitchers within limits will count.
+            </div>
+            
+            <div id="statsResults">
+                <div class="loading">
+                    <p>Complete Steps 1 & 2 first</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let pitchers = [];
+        let gameTimesData = [];
+        let allMLBPitchers = [];
+        
+        // Set default date to current week's Monday
+        window.onload = function() {
+            const today = new Date();
+            const day = today.getDay();
+            const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+            const monday = new Date(today.setDate(diff));
+            document.getElementById('weekStart').valueAsDate = monday;
+            updateWeekEnd();
+            loadMLBPitchers();
+        };
+        
+        async function loadMLBPitchers() {
+            try {
+                // Use 2024 season data (2025 rosters not finalized until spring)
+                const year = 2024;
+                const response = await fetch(`https://statsapi.mlb.com/api/v1/sports/1/players?season=${year}&gameType=R`);
+                const data = await response.json();
+                
+                // Filter for pitchers and create searchable list
+                allMLBPitchers = data.people
+                    .filter(p => p.primaryPosition && p.primaryPosition.abbreviation === 'P')
+                    .map(p => ({
+                        name: p.fullName,
+                        id: p.id,
+                        team: (p.currentTeam && p.currentTeam.abbreviation) ? p.currentTeam.abbreviation : 'FA'
+                    }));
+                    
+                console.log(`Loaded ${allMLBPitchers.length} MLB pitchers from ${year} season`);
+            } catch (error) {
+                console.error('Error loading MLB pitchers:', error);
+            }
+        }
+        
+        function searchPitcher(input) {
+            const query = input.value.toLowerCase();
+            const resultsDiv = input.parentElement.querySelector('.search-results');
+            
+            if (query.length < 2) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+            
+            const matches = allMLBPitchers
+                .filter(p => p.name.toLowerCase().includes(query))
+                .slice(0, 10);
+            
+            if (matches.length === 0) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+            
+            resultsDiv.innerHTML = matches
+                .map(p => `
+                    <div class="search-result-item" onclick="selectPitcher(this, '${p.name}', '${p.team}', ${p.id})">
+                        <span><strong>${p.name}</strong></span>
+                        <span style="color: #6b7280; font-size: 12px;">${p.team}</span>
+                    </div>
+                `)
+                .join('');
+            
+            resultsDiv.style.display = 'block';
+        }
+        
+        function selectPitcher(element, name, team, playerId) {
+            const entry = element.closest('.pitcher-entry');
+            const nameInput = entry.querySelector('.pitcher-name');
+            const teamInput = entry.querySelector('.pitcher-team');
+            
+            nameInput.value = name;
+            teamInput.value = team;
+            nameInput.dataset.playerId = playerId;
+            
+            element.closest('.search-results').style.display = 'none';
+        }
+        
+        // Close search results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.classList.contains('pitcher-name')) {
+                document.querySelectorAll('.search-results').forEach(div => {
+                    div.style.display = 'none';
+                });
+            }
+        });
+        
+        function resetForm() {
+            if (confirm('Clear all data and start over for a new team?')) {
+                // Reset all form fields
+                document.getElementById('teamName').value = '';
+                
+                // Keep date fields but allow changing
+                
+                // Remove all pitcher entries except first
+                const container = document.getElementById('pitcherEntries');
+                const firstEntry = container.querySelector('.pitcher-entry');
+                container.innerHTML = '';
+                
+                // Reset first entry
+                const newEntry = document.createElement('div');
+                newEntry.className = 'pitcher-entry';
+                newEntry.innerHTML = `
+                    <div class="form-group">
+                        <label>Pitcher Name</label>
+                        <input type="text" class="pitcher-name" placeholder="Start typing name..." autocomplete="off" oninput="searchPitcher(this)">
+                        <div class="search-results" style="display: none;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Team</label>
+                        <input type="text" class="pitcher-team" placeholder="NYY" maxlength="3">
+                    </div>
+                    <div class="form-group">
+                        <label>Type</label>
+                        <select class="pitcher-type">
+                            <option value="SP">Start (SP)</option>
+                            <option value="RP">Relief (RP)</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-danger" onclick="removeRow(this)" style="margin-top: 20px;">Remove</button>
+                `;
+                container.appendChild(newEntry);
+                
+                // Clear data arrays
+                pitchers = [];
+                gameTimesData = [];
+                
+                // Reset tabs
+                document.getElementById('gameTimesResults').innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Click "Fetch Game Times" in Step 1 to see results</p>
+                    </div>
+                `;
+                
+                document.getElementById('statsResults').innerHTML = `
+                    <div class="loading">
+                        <p>Complete Steps 1 & 2 first</p>
+                    </div>
+                `;
+                
+                switchTab(0);
+            }
+        }
+        
+        function updateWeekEnd() {
+            const startDate = new Date(document.getElementById('weekStart').value);
+            if (startDate) {
+                const endDate = new Date(startDate);
+                endDate.setDate(endDate.getDate() + 6);
+                document.getElementById('weekEnd').valueAsDate = endDate;
+            }
+        }
+        
+        function switchTab(index) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+            
+            tabs[index].classList.add('active');
+            contents[index].classList.add('active');
+        }
+        
+        function addPitcherRow() {
+            const container = document.getElementById('pitcherEntries');
+            const newRow = document.createElement('div');
+            newRow.className = 'pitcher-entry';
+            newRow.innerHTML = `
+                <div class="form-group">
+                    <input type="text" class="pitcher-name" placeholder="Start typing name..." autocomplete="off" oninput="searchPitcher(this)">
+                    <div class="search-results" style="display: none;"></div>
+                </div>
+                <div class="form-group">
+                    <input type="text" class="pitcher-team" placeholder="NYY" maxlength="3">
+                </div>
+                <div class="form-group">
+                    <select class="pitcher-type">
+                        <option value="SP">Start (SP)</option>
+                        <option value="RP">Relief (RP)</option>
+                    </select>
+                </div>
+                <button class="btn btn-danger" onclick="removeRow(this)">Remove</button>
+            `;
+            container.appendChild(newRow);
+        }
+        
+        function removeRow(button) {
+            if (document.querySelectorAll('.pitcher-entry').length > 1) {
+                button.closest('.pitcher-entry').remove();
+            } else {
+                alert('You must have at least one pitcher entry');
+            }
+        }
+        
+        async function fetchGameTimes() {
+            const weekStart = document.getElementById('weekStart').value;
+            const weekEnd = document.getElementById('weekEnd').value;
+            const teamName = document.getElementById('teamName').value;
+            
+            if (!weekStart || !teamName) {
+                alert('Please fill in week start date and team name');
+                return;
+            }
+            
+            // Collect pitcher data
+            pitchers = [];
+            const entries = document.querySelectorAll('.pitcher-entry');
+            entries.forEach(entry => {
+                const nameInput = entry.querySelector('.pitcher-name');
+                const name = nameInput.value;
+                const team = entry.querySelector('.pitcher-team').value;
+                const type = entry.querySelector('.pitcher-type').value;
+                const playerId = nameInput.dataset.playerId;
+                
+                if (name && team) {
+                    pitchers.push({ name, team, type: type, playerId, manualType: type });
+                }
+            });
+            
+            if (pitchers.length === 0) {
+                alert('Please add at least one pitcher');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('gameTimesResults').innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Fetching game times and stats from MLB Stats API...</p>
+                </div>
+            `;
+            
+            switchTab(1);
+            
+            // Fetch game times for each pitcher
+            try {
+                const allAppearances = [];
+                
+                for (const pitcher of pitchers) {
+                    const appearances = await getGameTimeAndStats(pitcher.playerId, pitcher.team, weekStart, weekEnd);
+                    
+                    // If API returned appearances, use those
+                    if (appearances.length > 0) {
+                        appearances.forEach(appearance => {
+                            allAppearances.push({
+                                ...pitcher,
+                                gameTime: appearance.gameTime,
+                                gameDate: new Date(appearance.gameTime),
+                                gameId: appearance.gameId,
+                                stats: appearance.stats,
+                                type: appearance.type, // Use API-detected type
+                                autoDetected: true
+                            });
+                        });
+                    } else {
+                        // No appearances found, keep manual entry
+                        allAppearances.push({
+                            ...pitcher,
+                            gameTime: null,
+                            gameDate: null,
+                            gameId: null,
+                            stats: null,
+                            autoDetected: false
+                        });
+                    }
+                }
+                
+                gameTimesData = allAppearances;
+                
+                // Sort by game time
+                gameTimesData.sort((a, b) => {
+                    if (!a.gameDate) return 1;
+                    if (!b.gameDate) return -1;
+                    return a.gameDate - b.gameDate;
+                });
+                
+                displayGameTimes(teamName);
+                
+            } catch (error) {
+                document.getElementById('gameTimesResults').innerHTML = `
+                    <div class="alert alert-warning">
+                        <strong>Error:</strong> Could not fetch all game times. ${error.message}
+                        <br><br>
+                        You can manually adjust times if needed or continue with available data.
+                    </div>
+                `;
+            }
+        }
+        
+        async function getGameTimeAndStats(playerId, teamAbbr, startDate, endDate) {
+            try {
+                const teamIds = {
+                    'NYY': 147, 'BOS': 111, 'TOR': 141, 'TB': 139, 'BAL': 110,
+                    'CLE': 114, 'MIN': 142, 'CWS': 145, 'DET': 116, 'KC': 118,
+                    'HOU': 117, 'TEX': 140, 'SEA': 136, 'LAA': 108, 'OAK': 133,
+                    'ATL': 144, 'NYM': 121, 'PHI': 143, 'MIA': 146, 'WSH': 120,
+                    'MIL': 158, 'CHC': 112, 'STL': 138, 'PIT': 134, 'CIN': 113,
+                    'LAD': 119, 'SD': 135, 'SF': 137, 'ARI': 109, 'COL': 115
+                };
+                
+                const teamId = teamIds[teamAbbr.toUpperCase()];
+                if (!teamId) {
+                    console.warn(`Unknown team: ${teamAbbr}`);
+                    return [];
+                }
+                
+                // Get schedule for team during the week
+                const scheduleUrl = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&teamId=${teamId}&startDate=${startDate}&endDate=${endDate}`;
+                const scheduleResponse = await fetch(scheduleUrl);
+                const scheduleData = await scheduleResponse.json();
+                
+                if (!scheduleData.dates || scheduleData.dates.length === 0) {
+                    return [];
+                }
+                
+                const appearances = [];
+                
+                // Find all games where this pitcher appeared
+                for (const date of scheduleData.dates) {
+                    for (const game of date.games) {
+                        if (game.gamePk && playerId) {
+                            try {
+                                // Get game stats
+                                const gameUrl = `https://statsapi.mlb.com/api/v1/game/${game.gamePk}/boxscore`;
+                                const gameResponse = await fetch(gameUrl);
+                                const gameData = await gameResponse.json();
+                                
+                                // Check both teams for the pitcher
+                                const homeTeam = gameData.teams.home;
+                                const awayTeam = gameData.teams.away;
+                                
+                                let pitcherData = null;
+                                let isHomeTeam = false;
+                                
+                                // Check home team pitchers
+                                if (homeTeam.players) {
+                                    for (const [key, player] of Object.entries(homeTeam.players)) {
+                                        if (player.person.id == playerId && player.stats.pitching) {
+                                            pitcherData = player;
+                                            isHomeTeam = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                
+                                // Check away team pitchers if not found
+                                if (!pitcherData && awayTeam.players) {
+                                    for (const [key, player] of Object.entries(awayTeam.players)) {
+                                        if (player.person.id == playerId && player.stats.pitching) {
+                                            pitcherData = player;
+                                            isHomeTeam = false;
+                                            break;
+                                        }
+                                    }
+                                }
+                                
+                                if (pitcherData && pitcherData.stats.pitching) {
+                                    // Determine if this was a start or relief appearance
+                                    // Check if pitcher was the starting pitcher
+                                    const teamData = isHomeTeam ? homeTeam : awayTeam;
+                                    const startingPitcherId = teamData.pitchers && teamData.pitchers.length > 0 
+                                        ? teamData.pitchers[0] 
+                                        : null;
+                                    
+                                    const isStart = startingPitcherId == playerId;
+                                    const appearanceType = isStart ? 'SP' : 'RP';
+                                    
+                                    appearances.push({
+                                        gameTime: game.gameDate,
+                                        gameId: game.gamePk,
+                                        stats: pitcherData.stats.pitching,
+                                        type: appearanceType,
+                                        isStart: isStart
+                                    });
+                                }
+                            } catch (gameError) {
+                                console.error(`Error fetching game ${game.gamePk}:`, gameError);
+                            }
+                        }
+                    }
+                }
+                
+                return appearances;
+            } catch (error) {
+                console.error(`Error fetching games for ${teamAbbr}:`, error);
+                return [];
+            }
+        }
+        
+        function displayGameTimes(teamName) {
+            let spCount = 0;
+            let rpCount = 0;
+            
+            let html = `
+                <div class="summary-card">
+                    <h3>${teamName} - Pitcher Usage (Chronological Order)</h3>
+                    <p>Limits: 7 Starts (SP) | 10 Relief Appearances (RP)</p>
+                    <p style="font-size: 13px; opacity: 0.9; margin-top: 5px;">Note: SP/RP type auto-detected from game data</p>
+                </div>
+                
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Pitcher</th>
+                            <th>Team</th>
+                            <th>Type</th>
+                            <th>Game Time (ET)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            gameTimesData.forEach((pitcher, index) => {
+                let status = '';
+                let rowClass = '';
+                
+                if (pitcher.type === 'SP') {
+                    spCount++;
+                    if (spCount <= 7) {
+                        status = `✓ Counts (SP ${spCount}/7)`;
+                        rowClass = 'counted';
+                    } else {
+                        status = `✗ Excluded (Over SP limit)`;
+                        rowClass = 'excluded';
+                    }
+                } else {
+                    rpCount++;
+                    if (rpCount <= 10) {
+                        status = `✓ Counts (RP ${rpCount}/10)`;
+                        rowClass = 'counted';
+                    } else {
+                        status = `✗ Excluded (Over RP limit)`;
+                        rowClass = 'excluded';
+                    }
+                }
+                
+                const timeStr = pitcher.gameDate ? 
+                    pitcher.gameDate.toLocaleString('en-US', { 
+                        weekday: 'short',
+                        month: 'short', 
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        timeZone: 'America/New_York'
+                    }) : 'Time not found';
+                
+                const typeDisplay = pitcher.autoDetected 
+                    ? `${pitcher.type} <span style="font-size: 11px; color: #10b981;">●</span>` 
+                    : `${pitcher.type} <span style="font-size: 11px; color: #6b7280;">○</span>`;
+                
+                html += `
+                    <tr class="${rowClass}">
+                        <td>${index + 1}</td>
+                        <td><strong>${pitcher.name}</strong></td>
+                        <td>${pitcher.team}</td>
+                        <td>${typeDisplay}</td>
+                        <td>${timeStr}</td>
+                        <td>${status}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+                
+                <div style="margin-top: 15px; font-size: 12px; color: #6b7280;">
+                    <span style="color: #10b981;">●</span> = Auto-detected from game data &nbsp;&nbsp;
+                    <span style="color: #6b7280;">○</span> = Manual selection
+                </div>
+                
+                <div style="margin-top: 30px; text-align: center;">
+                    <button class="btn btn-primary btn-lg" onclick="switchTab(2)" style="padding: 15px 40px; font-size: 16px;">
+                        Continue to Stats Entry →
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('gameTimesResults').innerHTML = html;
+        }
+        
+        switchTab(2); // Prepare stats tab when game times are ready
+        
+        function createStatsInputs() {
+            const teamName = document.getElementById('teamName').value;
+            
+            let html = `
+                <div class="summary-card">
+                    <h3>${teamName} - Pitcher Stats</h3>
+                    <p>Stats automatically populated from MLB API. Edit if needed. Only pitchers marked as "Counts" will be included in final totals.</p>
+                </div>
+            `;
+            
+            gameTimesData.forEach((pitcher, index) => {
+                let spCount = gameTimesData.slice(0, index + 1).filter(p => p.type === 'SP').length;
+                let rpCount = gameTimesData.slice(0, index + 1).filter(p => p.type === 'RP').length;
+                
+                let counts = false;
+                if (pitcher.type === 'SP' && spCount <= 7) counts = true;
+                if (pitcher.type === 'RP' && rpCount <= 10) counts = true;
+                
+                const bgClass = counts ? 'counted' : 'excluded';
+                const statusText = counts ? '✓ COUNTS' : '✗ EXCLUDED';
+                
+                // Get stats from API or use defaults
+                const stats = pitcher.stats || {};
+                const ip = stats.inningsPitched || '0';
+                const er = stats.earnedRuns || 0;
+                const k = stats.strikeOuts || 0;
+                const bb = stats.baseOnBalls || 0;
+                const h = stats.hits || 0;
+                const hb = stats.hitBatsmen || 0;
+                
+                // Calculate QS (6+ IP and 3 or fewer ER)
+                const ipNum = parseFloat(ip);
+                const qs = (ipNum >= 6 && er <= 3) ? 1 : 0;
+                
+                const sv = stats.saves || 0;
+                const hld = stats.holds || 0;
+                
+                const statsNote = pitcher.stats ? '✓ Auto-loaded from MLB API' : '⚠️ Stats not found - enter manually';
+                
+                html += `
+                    <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid ${counts ? '#10b981' : '#ef4444'};">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h4 style="margin: 0;">${pitcher.name} (${pitcher.team}) - ${pitcher.type}</h4>
+                            <span style="padding: 5px 15px; border-radius: 20px; font-weight: 600; font-size: 12px; ${counts ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;'}">${statusText}</span>
+                        </div>
+                        <div style="font-size: 12px; color: #6b7280; margin-bottom: 15px;">${statsNote}</div>
+                        <div class="stat-input" id="stats-${index}">
+                            <div class="form-group">
+                                <label>IP</label>
+                                <input type="number" step="0.1" class="stat-ip" data-index="${index}" value="${ip}">
+                            </div>
+                            <div class="form-group">
+                                <label>ER</label>
+                                <input type="number" class="stat-er" data-index="${index}" value="${er}">
+                            </div>
+                            <div class="form-group">
+                                <label>K</label>
+                                <input type="number" class="stat-k" data-index="${index}" value="${k}">
+                            </div>
+                            <div class="form-group">
+                                <label>BB</label>
+                                <input type="number" class="stat-bb" data-index="${index}" value="${bb}">
+                            </div>
+                            <div class="form-group">
+                                <label>H</label>
+                                <input type="number" class="stat-h" data-index="${index}" value="${h}">
+                            </div>
+                            <div class="form-group">
+                                <label>HB</label>
+                                <input type="number" class="stat-hb" data-index="${index}" value="${hb}">
+                            </div>
+                            <div class="form-group">
+                                <label>QS</label>
+                                <input type="number" class="stat-qs" data-index="${index}" value="${qs}" max="1">
+                            </div>
+                            <div class="form-group">
+                                <label>SV</label>
+                                <input type="number" class="stat-sv" data-index="${index}" value="${sv}">
+                            </div>
+                            <div class="form-group">
+                                <label>HLD</label>
+                                <input type="number" class="stat-hld" data-index="${index}" value="${hld}">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                <button class="btn btn-success btn-lg" onclick="calculateTotals()" style="width: 100%; padding: 15px; font-size: 16px;">
+                    Calculate Corrected Totals
+                </button>
+                <div id="finalResults" style="margin-top: 30px;"></div>
+            `;
+            
+            document.getElementById('statsResults').innerHTML = html;
+        }
+        
+        function calculateTotals() {
+            const scoringRules = {
+                IP: 1.5,
+                ER: -2,
+                K: 0.75,
+                BB: -0.25,
+                H: -0.25,
+                HB: -0.25,
+                QS: 1,
+                SV: 1,
+                HLD: 1
+            };
+            
+            let totalPoints = 0;
+            let countedPitchers = [];
+            
+            gameTimesData.forEach((pitcher, index) => {
+                let spCount = gameTimesData.slice(0, index + 1).filter(p => p.type === 'SP').length;
+                let rpCount = gameTimesData.slice(0, index + 1).filter(p => p.type === 'RP').length;
+                
+                let counts = false;
+                if (pitcher.type === 'SP' && spCount <= 7) counts = true;
+                if (pitcher.type === 'RP' && rpCount <= 10) counts = true;
+                
+                if (counts) {
+                    const ip = parseFloat(document.querySelector(`input.stat-ip[data-index="${index}"]`).value) || 0;
+                    const er = parseFloat(document.querySelector(`input.stat-er[data-index="${index}"]`).value) || 0;
+                    const k = parseFloat(document.querySelector(`input.stat-k[data-index="${index}"]`).value) || 0;
+                    const bb = parseFloat(document.querySelector(`input.stat-bb[data-index="${index}"]`).value) || 0;
+                    const h = parseFloat(document.querySelector(`input.stat-h[data-index="${index}"]`).value) || 0;
+                    const hb = parseFloat(document.querySelector(`input.stat-hb[data-index="${index}"]`).value) || 0;
+                    const qs = parseFloat(document.querySelector(`input.stat-qs[data-index="${index}"]`).value) || 0;
+                    const sv = parseFloat(document.querySelector(`input.stat-sv[data-index="${index}"]`).value) || 0;
+                    const hld = parseFloat(document.querySelector(`input.stat-hld[data-index="${index}"]`).value) || 0;
+                    
+                    const points = (ip * scoringRules.IP) + 
+                                 (er * scoringRules.ER) + 
+                                 (k * scoringRules.K) + 
+                                 (bb * scoringRules.BB) + 
+                                 (h * scoringRules.H) + 
+                                 (hb * scoringRules.HB) + 
+                                 (qs * scoringRules.QS) + 
+                                 (sv * scoringRules.SV) + 
+                                 (hld * scoringRules.HLD);
+                    
+                    totalPoints += points;
+                    countedPitchers.push({
+                        name: pitcher.name,
+                        type: pitcher.type,
+                        points: points.toFixed(2)
+                    });
+                }
+            });
+            
+            const teamName = document.getElementById('teamName').value;
+            
+            let html = `
+                <div class="summary-card">
+                    <h3>📊 ${teamName} - Corrected Totals</h3>
+                    <div class="summary-stats">
+                        <div class="stat-box">
+                            <div class="label">Total Points (Corrected)</div>
+                            <div class="value">${totalPoints.toFixed(2)}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="label">Pitchers Counted</div>
+                            <div class="value">${countedPitchers.length}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h4 style="margin-top: 20px; margin-bottom: 10px;">Breakdown by Pitcher:</h4>
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Pitcher</th>
+                            <th>Type</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            countedPitchers.forEach(p => {
+                html += `
+                    <tr>
+                        <td><strong>${p.name}</strong></td>
+                        <td>${p.type}</td>
+                        <td>${p.points}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            document.getElementById('finalResults').innerHTML = html;
+            document.getElementById('finalResults').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Auto-create stats inputs when tab 3 is opened after game times are fetched
+        const originalSwitchTab = switchTab;
+        switchTab = function(index) {
+            originalSwitchTab(index);
+            if (index === 2 && gameTimesData.length > 0) {
+                createStatsInputs();
+            }
+        };
+    </script>
+</body>
+</html>
