@@ -178,6 +178,15 @@
                 Add each active appearance for ALL teams with overages
             </p>
             
+            <div style="background: #f0f9ff; border: 2px solid #3b82f6; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="margin-bottom: 10px;">🔧 Test Fantrax API</h4>
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" id="testId" placeholder="Paste your ID here" style="padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px;">
+                    <button class="btn btn-primary" onclick="testFantraxId()">Test ID</button>
+                </div>
+                <div id="testResult" style="font-size: 13px; color: #374151;"></div>
+            </div>
+            
             <div id="pitcherList">
                 <div class="pitcher-entry">
                     <div class="form-group">
@@ -728,6 +737,49 @@
         }
         
         function resetAll() { if (confirm('Clear all?')) location.reload(); }
+        
+        async function testFantraxId() {
+            const id = document.getElementById('testId').value.trim();
+            const resultDiv = document.getElementById('testResult');
+            
+            if (!id) {
+                resultDiv.innerHTML = '⚠️ Please enter an ID';
+                return;
+            }
+            
+            resultDiv.innerHTML = '🔍 Testing...';
+            
+            // Test as League ID
+            try {
+                const leagueUrl = `https://www.fantrax.com/fxea/general/getLeagueInfo?leagueId=${id}`;
+                const leagueRes = await fetch(leagueUrl);
+                const leagueData = await leagueRes.json();
+                
+                if (leagueData && !leagueData.error && leagueData.leagueName) {
+                    resultDiv.innerHTML = `✅ <strong>This is a LEAGUE ID!</strong><br>League: ${leagueData.leagueName}<br>Sport: ${leagueData.sport || 'Unknown'}`;
+                    return;
+                }
+            } catch(e) {
+                console.log('Not a league ID:', e);
+            }
+            
+            // Test as Secret ID (User ID)
+            try {
+                const secretUrl = `https://www.fantrax.com/fxea/general/getLeagues?userSecretId=${id}`;
+                const secretRes = await fetch(secretUrl);
+                const secretData = await secretRes.json();
+                
+                if (secretData && secretData.leagues && secretData.leagues.length > 0) {
+                    const leagueList = secretData.leagues.map(l => `- ${l.leagueName}`).join('<br>');
+                    resultDiv.innerHTML = `✅ <strong>This is a SECRET ID!</strong><br>Found ${secretData.leagues.length} leagues:<br>${leagueList}`;
+                    return;
+                }
+            } catch(e) {
+                console.log('Not a secret ID:', e);
+            }
+            
+            resultDiv.innerHTML = '❌ Could not identify this ID. Make sure it\'s copied correctly from Fantrax.';
+        }
     </script>
 </body>
 </html>
