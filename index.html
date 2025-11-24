@@ -501,6 +501,12 @@
                 const response = await fetch(`https://statsapi.mlb.com/api/v1/sports/1/players?season=${year}`);
                 const data = await response.json();
                 
+                // Check if data.people exists
+                if (!data.people || !Array.isArray(data.people)) {
+                    console.error('MLB API returned unexpected format:', data);
+                    throw new Error('Invalid API response format');
+                }
+                
                 // Filter for pitchers - be more inclusive to catch everyone
                 allMLBPitchers = data.people
                     .filter(p => {
@@ -516,18 +522,35 @@
                         team: (p.currentTeam && p.currentTeam.abbreviation) ? p.currentTeam.abbreviation : 'FA'
                     }));
                     
-                console.log(`Loaded ${allMLBPitchers.length} MLB pitchers from ${year} season`);
+                console.log(`✅ Loaded ${allMLBPitchers.length} MLB pitchers from ${year} season`);
             } catch (error) {
-                console.error('Error loading MLB pitchers:', error);
+                console.error('❌ Error loading MLB pitchers:', error);
                 // Fallback: try with gameType=R if first attempt fails
                 try {
                     const response = await fetch(`https://statsapi.mlb.com/api/v1/sports/1/players?season=2024&gameType=R`);
                     const data = await response.json();
                     
+                    if (!data.people || !Array.isArray(data.people)) {
+                        console.error('Fallback MLB API also returned unexpected format');
+                        allMLBPitchers = [];
+                        return;
+                    }
+                    
                     allMLBPitchers = data.people
                         .filter(p => p.primaryPosition && (p.primaryPosition.abbreviation === 'P' || p.primaryPosition.code === '1'))
                         .map(p => ({
                             name: p.fullName,
+                            id: p.id,
+                            team: (p.currentTeam && p.currentTeam.abbreviation) ? p.currentTeam.abbreviation : 'FA'
+                        }));
+                        
+                    console.log(`✅ Loaded ${allMLBPitchers.length} MLB pitchers (fallback)`);
+                } catch (fallbackError) {
+                    console.error('❌ Fallback also failed:', fallbackError);
+                    allMLBPitchers = [];
+                }
+            }
+        }
                             id: p.id,
                             team: (p.currentTeam && p.currentTeam.abbreviation) ? p.currentTeam.abbreviation : 'FA'
                         }));
@@ -543,8 +566,17 @@
             const query = input.value.toLowerCase();
             const resultsDiv = input.parentElement.querySelector('.search-results');
             
+            console.log(`🔍 Search query: "${query}", allMLBPitchers length: ${allMLBPitchers.length}`);
+            
             if (query.length < 2) {
                 resultsDiv.style.display = 'none';
+                return;
+            }
+            
+            if (allMLBPitchers.length === 0) {
+                console.warn('⚠️ allMLBPitchers is empty - MLB API may not have loaded');
+                resultsDiv.innerHTML = '<div class="search-result-item" style="color: #ef4444; padding: 10px;">Pitcher database loading... Please wait or type the full name.</div>';
+                resultsDiv.style.display = 'block';
                 return;
             }
             
@@ -552,8 +584,11 @@
                 .filter(p => p.name.toLowerCase().includes(query))
                 .slice(0, 10);
             
+            console.log(`Found ${matches.length} matches`);
+            
             if (matches.length === 0) {
-                resultsDiv.style.display = 'none';
+                resultsDiv.innerHTML = '<div class="search-result-item" style="color: #6b7280; padding: 10px;">No matches found. You can still enter the name manually.</div>';
+                resultsDiv.style.display = 'block';
                 return;
             }
             
@@ -723,8 +758,11 @@
         }
         
         async function fetchGameTimes() {
+            console.log('🚀 fetchGameTimes called');
             const weekStart = document.getElementById('weekStart').value;
             const weekEnd = document.getElementById('weekEnd').value;
+            
+            console.log('Week:', weekStart, 'to', weekEnd);
             
             if (!weekStart) {
                 alert('Please select a week start date');
@@ -734,13 +772,17 @@
             // Collect pitcher data
             pitchers = [];
             const entries = document.querySelectorAll('.pitcher-entry');
-            entries.forEach(entry => {
+            console.log(`Found ${entries.length} pitcher entries`);
+            
+            entries.forEach((entry, index) => {
                 const fantasyTeam = entry.querySelector('.team-name').value;
                 const nameInput = entry.querySelector('.pitcher-name');
                 const name = nameInput.value;
                 const team = entry.querySelector('.pitcher-team').value;
                 const gameDate = entry.querySelector('.game-date').value;
                 const playerId = nameInput.dataset.playerId;
+                
+                console.log(`Entry ${index}:`, {fantasyTeam, name, team, gameDate, playerId});
                 
                 if (fantasyTeam && name && team && gameDate) {
                     // Include even if no playerId - we'll try to find them by name
@@ -752,8 +794,10 @@
                 }
             });
             
+            console.log(`✅ Collected ${pitchers.length} valid pitchers`);
+            
             if (pitchers.length === 0) {
-                alert('Please add at least one pitcher');
+                alert('Please add at least one pitcher with all fields filled (Fantasy Team, Pitcher Name, MLB Team, Game Date)');
                 return;
             }
             
