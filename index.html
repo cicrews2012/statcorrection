@@ -415,7 +415,7 @@
                         </div>
                         <div class="form-group">
                             <label>Pitcher Name</label>
-                            <input type="text" class="pitcher-name" placeholder="Start typing name..." autocomplete="off" oninput="searchPitcher(this)">
+                            <input type="text" class="pitcher-name" placeholder="Start typing name..." autocomplete="off">
                             <div class="search-results" style="display: none;"></div>
                         </div>
                         <div class="form-group">
@@ -490,6 +490,22 @@
                     }
                 }
             }, 100);
+            
+            // Setup event delegation for pitcher search (handles dynamically added rows)
+            document.getElementById('pitcherEntries').addEventListener('input', function(e) {
+                if (e.target.classList.contains('pitcher-name')) {
+                    searchPitcher(e.target);
+                }
+            });
+            
+            // Hide search results when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.classList.contains('pitcher-name')) {
+                    document.querySelectorAll('.search-results').forEach(div => {
+                        div.style.display = 'none';
+                    });
+                }
+            });
         };
         
         async function loadMLBPitchers() {
@@ -646,7 +662,7 @@
                     </div>
                     <div class="form-group">
                         <label>Pitcher Name</label>
-                        <input type="text" class="pitcher-name" placeholder="Start typing name..." autocomplete="off" oninput="searchPitcher(this)">
+                        <input type="text" class="pitcher-name" placeholder="Start typing name..." autocomplete="off">
                         <div class="search-results" style="display: none;"></div>
                     </div>
                     <div class="form-group">
@@ -734,7 +750,7 @@
                     <input type="text" class="team-name" placeholder="e.g., John's Team">
                 </div>
                 <div class="form-group">
-                    <input type="text" class="pitcher-name" placeholder="Start typing name..." autocomplete="off" oninput="searchPitcher(this)">
+                    <input type="text" class="pitcher-name" placeholder="Start typing name..." autocomplete="off">
                     <div class="search-results" style="display: none;"></div>
                 </div>
                 <div class="form-group">
