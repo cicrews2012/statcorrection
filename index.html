@@ -371,7 +371,12 @@
             </div>
             
             <div class="input-section">
-                <h3>Week Information</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0;">Week Information</h3>
+                    <button class="btn btn-secondary" onclick="resetForm()" style="padding: 8px 16px;">
+                        🔄 Clear & Start Over
+                    </button>
+                </div>
                 <div class="week-input">
                     <div class="form-group">
                         <label>Week Start</label>
@@ -427,14 +432,9 @@
                 <button class="btn btn-secondary" onclick="addPitcherRow()" style="margin-top: 10px;">+ Add Another Appearance</button>
             </div>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <button class="btn btn-secondary btn-lg" onclick="resetForm()" style="padding: 15px; font-size: 16px;">
-                    🔄 Clear & Start Over
-                </button>
-                <button class="btn btn-primary btn-lg" onclick="fetchGameTimes()" style="padding: 15px; font-size: 16px;">
-                    Fetch Game Times & Continue →
-                </button>
-            </div>
+            <button class="btn btn-primary btn-lg" onclick="fetchGameTimes()" style="width: 100%; padding: 15px; font-size: 16px;">
+                Fetch Game Times & Continue →
+            </button>
         </div>
         
         <!-- Tab 2: Game Times -->
@@ -676,6 +676,8 @@
         
         function addPitcherRow() {
             const container = document.getElementById('pitcherEntries');
+            const weekStart = document.getElementById('weekStart').value;
+            
             const newRow = document.createElement('div');
             newRow.className = 'pitcher-entry';
             newRow.innerHTML = `
@@ -687,7 +689,7 @@
                     <input type="text" class="pitcher-team" placeholder="NYY" maxlength="3">
                 </div>
                 <div class="form-group">
-                    <input type="date" class="game-date">
+                    <input type="date" class="game-date" value="${weekStart || ''}">
                 </div>
                 <button class="btn btn-danger" onclick="removeRow(this)">Remove</button>
             `;
@@ -724,7 +726,8 @@
                 const playerId = nameInput.dataset.playerId;
                 
                 if (name && team && gameDate) {
-                    pitchers.push({ name, team, gameDate, playerId });
+                    // Include even if no playerId - we'll try to find them by name
+                    pitchers.push({ name, team, gameDate, playerId: playerId || null });
                 } else if (name && team && !gameDate) {
                     alert(`Please select a game date for ${name}`);
                 }
@@ -750,7 +753,7 @@
                 const allAppearances = [];
                 
                 for (const pitcher of pitchers) {
-                    const appearance = await getGameDataForDate(pitcher.playerId, pitcher.team, pitcher.gameDate);
+                    const appearance = await getGameDataForDate(pitcher.playerId, pitcher.team, pitcher.gameDate, pitcher.name);
                     
                     if (appearance) {
                         allAppearances.push({
@@ -798,7 +801,7 @@
             }
         }
         
-        async function getGameDataForDate(playerId, teamAbbr, gameDate) {
+        async function getGameDataForDate(playerId, teamAbbr, gameDate, pitcherName = null) {
             try {
                 const teamIds = {
                     'NYY': 147, 'BOS': 111, 'TOR': 141, 'TB': 139, 'BAL': 110,
@@ -828,7 +831,7 @@
                 // Check all games on this date (doubleheaders)
                 for (const date of scheduleData.dates) {
                     for (const game of date.games) {
-                        if (game.gamePk && playerId) {
+                        if (game.gamePk) {
                             try {
                                 // Get game stats
                                 const gameUrl = `https://statsapi.mlb.com/api/v1/game/${game.gamePk}/boxscore`;
@@ -841,13 +844,21 @@
                                 
                                 let pitcherData = null;
                                 let isHomeTeam = false;
+                                let foundPlayerId = playerId;
+                                
+                                // Helper function to check if pitcher matches
+                                const matchesPitcher = (player) => {
+                                    if (playerId && player.person.id == playerId) return true;
+                                    if (pitcherName && player.person.fullName.toLowerCase().includes(pitcherName.toLowerCase())) return true;
+                                    if (pitcherName && pitcherName.toLowerCase().includes(player.person.fullName.toLowerCase())) return true;
+                                    return false;
+                                };
                                 
                                 // Check home team pitchers
                                 if (homeTeam.players) {
                                     for (const [key, player] of Object.entries(homeTeam.players)) {
-                                        if (player.person.id == playerId && player.stats && player.stats.pitching) {
+                                        if (matchesPitcher(player) && player.stats && player.stats.pitching) {
                                             // Include if they have any pitching stats (even 0 IP - they appeared)
-                                            // Check if they faced batters or have any counting stats
                                             const stats = player.stats.pitching;
                                             const pitched = stats.battersFaced > 0 || 
                                                           parseFloat(stats.inningsPitched || 0) > 0 ||
@@ -857,6 +868,7 @@
                                             if (pitched) {
                                                 pitcherData = player;
                                                 isHomeTeam = true;
+                                                foundPlayerId = player.person.id;
                                                 break;
                                             }
                                         }
@@ -866,7 +878,7 @@
                                 // Check away team pitchers if not found
                                 if (!pitcherData && awayTeam.players) {
                                     for (const [key, player] of Object.entries(awayTeam.players)) {
-                                        if (player.person.id == playerId && player.stats && player.stats.pitching) {
+                                        if (matchesPitcher(player) && player.stats && player.stats.pitching) {
                                             // Include if they have any pitching stats (even 0 IP - they appeared)
                                             const stats = player.stats.pitching;
                                             const pitched = stats.battersFaced > 0 || 
@@ -877,6 +889,7 @@
                                             if (pitched) {
                                                 pitcherData = player;
                                                 isHomeTeam = false;
+                                                foundPlayerId = player.person.id;
                                                 break;
                                             }
                                         }
@@ -890,7 +903,7 @@
                                         ? teamData.pitchers[0] 
                                         : null;
                                     
-                                    const isStart = startingPitcherId == playerId;
+                                    const isStart = startingPitcherId == foundPlayerId;
                                     const appearanceType = isStart ? 'SP' : 'RP';
                                     
                                     return {
@@ -898,7 +911,8 @@
                                         gameId: game.gamePk,
                                         stats: pitcherData.stats.pitching,
                                         type: appearanceType,
-                                        isStart: isStart
+                                        isStart: isStart,
+                                        playerId: foundPlayerId
                                     };
                                 }
                             } catch (gameError) {
@@ -1179,6 +1193,28 @@
             return total;
         }
         
+        function parseIPValue(ipString) {
+            // Convert baseball IP notation to actual innings
+            // 5.1 = 5 and 1/3 innings = 5.333...
+            // 5.2 = 5 and 2/3 innings = 5.666...
+            // 5.0 or 5 = 5 innings
+            
+            if (!ipString) return 0;
+            
+            const ipFloat = parseFloat(ipString);
+            const wholeInnings = Math.floor(ipFloat);
+            const fraction = Math.round((ipFloat - wholeInnings) * 10); // Get the .1 or .2
+            
+            // Convert to actual decimal
+            if (fraction === 1) {
+                return wholeInnings + (1/3);
+            } else if (fraction === 2) {
+                return wholeInnings + (2/3);
+            } else {
+                return wholeInnings;
+            }
+        }
+        
         function calculateTotals() {
             const scoringRules = {
                 IP: 1.5,
@@ -1203,7 +1239,8 @@
                 const pitcherData = JSON.parse(metaElement.value);
                 
                 // Get input values
-                const ip = parseFloat(document.querySelector(`input.stat-ip[data-group="${groupIndex}"]`).value) || 0;
+                const ipRaw = document.querySelector(`input.stat-ip[data-group="${groupIndex}"]`).value;
+                const ip = parseIPValue(ipRaw);
                 const er = parseFloat(document.querySelector(`input.stat-er[data-group="${groupIndex}"]`).value) || 0;
                 const k = parseFloat(document.querySelector(`input.stat-k[data-group="${groupIndex}"]`).value) || 0;
                 const bb = parseFloat(document.querySelector(`input.stat-bb[data-group="${groupIndex}"]`).value) || 0;
@@ -1270,7 +1307,7 @@
                     excludedPoints: excludedPoints,
                     totalPts: totalPts,
                     explanation: explanation,
-                    stats: { ip, er, k, bb, h, hb, qs, sv, hld }
+                    stats: { ipRaw, ip, er, k, bb, h, hb, qs, sv, hld }
                 });
             });
             
@@ -1304,7 +1341,7 @@
                             <div>
                                 <strong style="font-size: 16px;">${p.name}</strong>
                                 <div style="font-size: 13px; color: #6b7280; margin-top: 3px;">
-                                    IP: ${p.stats.ip} | ER: ${p.stats.er} | K: ${p.stats.k} | BB: ${p.stats.bb} | H: ${p.stats.h}
+                                    IP: ${ipRaw} | ER: ${p.stats.er} | K: ${p.stats.k} | BB: ${p.stats.bb} | H: ${p.stats.h}
                                     ${p.stats.qs > 0 ? ` | QS: ${p.stats.qs}` : ''}
                                     ${p.stats.sv > 0 ? ` | SV: ${p.stats.sv}` : ''}
                                     ${p.stats.hld > 0 ? ` | HLD: ${p.stats.hld}` : ''}
