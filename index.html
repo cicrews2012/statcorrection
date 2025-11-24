@@ -508,7 +508,7 @@
                 Object.keys(pitchers).forEach(pn => {
                     const p = pitchers[pn];
                     const all = [...p.counted, ...p.excluded];
-                    let ip=0,er=0,k=0,bb=0,h=0;
+                    let ip=0,er=0,k=0,bb=0,h=0,hb=0,sv=0,hld=0,qs=0;
                     all.forEach(a => {
                         if (a.stats) {
                             ip += parseIP(a.stats.inningsPitched);
@@ -516,9 +516,19 @@
                             k += parseInt(a.stats.strikeOuts||0);
                             bb += parseInt(a.stats.baseOnBalls||0);
                             h += parseInt(a.stats.hits||0);
+                            hb += parseInt(a.stats.hitBatsmen||0);
+                            sv += parseInt(a.stats.saves||0);
+                            hld += parseInt(a.stats.holds||0);
+                            // QS: 6+ IP with 3 or fewer ER
+                            const gameIP = parseIP(a.stats.inningsPitched||0);
+                            const gameER = parseInt(a.stats.earnedRuns||0);
+                            if (gameIP >= 6 && gameER <= 3) qs++;
                         }
                     });
-                    const pts = (ip*1.5)+(er*-2)+(k*0.75)+(bb*-0.25)+(h*-0.25);
+                    
+                    // Calculate points using league scoring rules
+                    const pts = (ip*1.5) + (er*-2) + (k*0.75) + (bb*-0.25) + (h*-0.25) + (hb*-0.25) + (sv*1) + (hld*1) + (qs*1);
+                    
                     let cpts = pts;
                     if (p.counted.length > 0 && p.excluded.length > 0) {
                         const cip = p.counted.reduce((s,a) => s + parseIP(a.stats?.inningsPitched||0), 0);
@@ -529,7 +539,10 @@
                     html += `<div style="background:white;padding:15px;margin:10px 0;border-radius:6px;border-left:4px solid ${cpts>0?'#10b981':'#ef4444'};">
                         <div style="display:flex;justify-content:space-between;"><strong>${pn}</strong>
                         <strong style="color:${cpts>0?'#10b981':'#ef4444'};">${cpts.toFixed(2)} pts</strong></div>
-                        <div style="font-size:13px;color:#6b7280;margin-top:5px;">IP:${ip.toFixed(1)} ER:${er} K:${k} BB:${bb} H:${h}</div>
+                        <div style="font-size:13px;color:#6b7280;margin-top:5px;">
+                            IP:${ip.toFixed(1)} ER:${er} K:${k} BB:${bb} H:${h} HB:${hb}
+                            ${sv > 0 ? ` SV:${sv}` : ''}${hld > 0 ? ` HLD:${hld}` : ''}${qs > 0 ? ` QS:${qs}` : ''}
+                        </div>
                         <div style="font-size:12px;color:#6b7280;margin-top:5px;">${p.counted.length} counted, ${p.excluded.length} excluded</div></div>`;
                 });
                 
