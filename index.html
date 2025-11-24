@@ -795,10 +795,13 @@
                                 // Check home team pitchers
                                 if (homeTeam.players) {
                                     for (const [key, player] of Object.entries(homeTeam.players)) {
-                                        if (player.person.id == playerId && player.stats.pitching) {
-                                            pitcherData = player;
-                                            isHomeTeam = true;
-                                            break;
+                                        if (player.person.id == playerId && player.stats && player.stats.pitching && player.stats.pitching.inningsPitched) {
+                                            // Only include if they actually pitched (has IP > 0)
+                                            if (parseFloat(player.stats.pitching.inningsPitched) > 0) {
+                                                pitcherData = player;
+                                                isHomeTeam = true;
+                                                break;
+                                            }
                                         }
                                     }
                                 }
@@ -806,10 +809,13 @@
                                 // Check away team pitchers if not found
                                 if (!pitcherData && awayTeam.players) {
                                     for (const [key, player] of Object.entries(awayTeam.players)) {
-                                        if (player.person.id == playerId && player.stats.pitching) {
-                                            pitcherData = player;
-                                            isHomeTeam = false;
-                                            break;
+                                        if (player.person.id == playerId && player.stats && player.stats.pitching && player.stats.pitching.inningsPitched) {
+                                            // Only include if they actually pitched (has IP > 0)
+                                            if (parseFloat(player.stats.pitching.inningsPitched) > 0) {
+                                                pitcherData = player;
+                                                isHomeTeam = false;
+                                                break;
+                                            }
                                         }
                                     }
                                 }
