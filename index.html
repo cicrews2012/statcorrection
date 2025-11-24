@@ -161,7 +161,7 @@
                 </div>
                 <div class="form-group">
                     <label>Week End</label>
-                    <input type="date" id="weekEnd">
+                    <input type="date" id="weekEnd" onchange="updateWeekEnd()">
                 </div>
                 <div class="form-group">
                     <label>Max Starts (SP)</label>
@@ -220,7 +220,12 @@
             const diff = today.getDate() - day + (day === 0 ? -6 : 1);
             const monday = new Date(today.setDate(diff));
             document.getElementById('weekStart').valueAsDate = monday;
-            updateWeekEnd();
+            
+            // Auto-fill week end but allow manual editing
+            const sunday = new Date(monday);
+            sunday.setDate(sunday.getDate() + 6);
+            document.getElementById('weekEnd').valueAsDate = sunday;
+            
             loadMLBPitchers();
             
             document.getElementById('pitcherList').addEventListener('input', function(e) {
@@ -238,15 +243,25 @@
         
         function updateWeekEnd() {
             const start = document.getElementById('weekStart').value;
+            const endInput = document.getElementById('weekEnd');
+            
             if (start) {
-                const d = new Date(start);
-                d.setDate(d.getDate() + 6);
-                document.getElementById('weekEnd').valueAsDate = d;
-                document.querySelectorAll('.game-date').forEach(input => {
-                    input.min = start;
-                    input.max = document.getElementById('weekEnd').value;
-                    if (!input.value) input.value = start;
-                });
+                // Only auto-fill if week end is empty
+                if (!endInput.value) {
+                    const d = new Date(start);
+                    d.setDate(d.getDate() + 6);
+                    endInput.valueAsDate = d;
+                }
+                
+                // Update game date constraints
+                const weekEnd = endInput.value;
+                if (weekEnd) {
+                    document.querySelectorAll('.game-date').forEach(input => {
+                        input.min = start;
+                        input.max = weekEnd;
+                        if (!input.value) input.value = start;
+                    });
+                }
             }
         }
         
@@ -379,7 +394,7 @@
             try {
                 console.log(`🔍 Searching for: ${name} (${team}) on ${date}, ID: ${id || 'none'}`);
                 
-                const teams = {NYY:147,BOS:111,TOR:141,TB:139,BAL:110,CLE:114,MIN:142,CWS:145,DET:116,KC:118,
+                const teams = {NYY:147,BOS:111,TOR:141,TB:139,BAL:110,CLE:114,MIN:142,CWS:145,CHW:145,DET:116,KC:118,
                               HOU:117,TEX:140,SEA:136,LAA:108,OAK:133,ATL:144,NYM:121,PHI:143,MIA:146,WSH:120,
                               MIL:158,CHC:112,STL:138,PIT:134,CIN:113,LAD:119,SD:135,SF:137,ARI:109,COL:115};
                 const tid = teams[team.toUpperCase()];
