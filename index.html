@@ -873,7 +873,9 @@
                 }
                 
                 console.log('Player IDs:', playerIds);
-                console.log('Player info available:', leagueData.playerInfo ? Object.keys(leagueData.playerInfo).length : 0);
+                console.log('PlayerInfo exists?', !!leagueData.playerInfo);
+                console.log('PlayerInfo keys:', leagueData.playerInfo ? Object.keys(leagueData.playerInfo).slice(0, 10) : 'none');
+                console.log('Sample playerInfo entry:', leagueData.playerInfo ? leagueData.playerInfo[Object.keys(leagueData.playerInfo)[0]] : 'none');
                 
                 if (playerIds.length === 0) {
                     statusDiv.innerHTML = '⚠️ No players found on roster';
@@ -882,17 +884,24 @@
                 
                 // Map player IDs to full player data
                 const pitchers = [];
-                playerIds.forEach(playerItem => {
+                playerIds.forEach((playerItem, idx) => {
                     // playerItem might be an object with 'id' or just a string ID
                     const playerId = typeof playerItem === 'string' ? playerItem : playerItem.id;
                     const playerPos = typeof playerItem === 'object' ? playerItem.position : null;
                     
+                    console.log(`Processing player ${idx}:`, {playerItem, playerId, playerPos});
+                    
                     // Only include pitchers
-                    if (playerPos && !playerPos.includes('P')) return;
+                    if (playerPos && !playerPos.includes('P')) {
+                        console.log(`  Skipping non-pitcher: ${playerPos}`);
+                        return;
+                    }
                     
                     // Get player details from playerInfo
                     if (leagueData.playerInfo && leagueData.playerInfo[playerId]) {
                         const player = leagueData.playerInfo[playerId];
+                        console.log(`  Found player data:`, player);
+                        
                         const pos = player.position || player.pos || playerPos || '';
                         
                         // Double-check it's a pitcher
@@ -903,6 +912,8 @@
                                 position: pos
                             });
                         }
+                    } else {
+                        console.log(`  Player ${playerId} not found in playerInfo`);
                     }
                 });
                 
