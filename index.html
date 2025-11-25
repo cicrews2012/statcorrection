@@ -854,9 +854,24 @@
                 const teamName = teamRoster.teamName || 'Your Team';
                 
                 console.log('Team roster:', teamRoster);
+                console.log('Team roster keys:', Object.keys(teamRoster));
+                console.log('Team roster structure:', {
+                    hasPlayers: !!teamRoster.players,
+                    hasRosterItems: !!teamRoster.rosterItems,
+                    hasLineup: !!teamRoster.lineup,
+                    playersLength: teamRoster.players ? teamRoster.players.length : 0,
+                    rosterItemsLength: teamRoster.rosterItems ? teamRoster.rosterItems.length : 0,
+                    allKeys: Object.keys(teamRoster)
+                });
                 
-                // Get players from roster
-                const players = teamRoster.players || [];
+                // Try different possible fields
+                let players = teamRoster.players || teamRoster.rosterItems || teamRoster.lineup || [];
+                
+                // If still empty, try getting from nested structure
+                if (players.length === 0 && teamRoster.roster) {
+                    players = teamRoster.roster.players || teamRoster.roster.items || [];
+                }
+                
                 console.log('Players on roster:', players);
                 
                 if (players.length === 0) {
