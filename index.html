@@ -834,7 +834,7 @@
                     return;
                 }
                 
-                // Get rosters
+                // Get rosters to find player IDs
                 const rostersUrl = `https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${leagueId}`;
                 const rostersRes = await fetch(rostersUrl);
                 
@@ -853,36 +853,57 @@
                 const teamRoster = rostersData.rosters[teamId];
                 const teamName = teamRoster.teamName || 'Your Team';
                 
-                console.log('Team roster:', teamRoster);
-                console.log('Team roster keys:', Object.keys(teamRoster));
-                console.log('Team roster structure:', {
-                    hasPlayers: !!teamRoster.players,
-                    hasRosterItems: !!teamRoster.rosterItems,
-                    hasLineup: !!teamRoster.lineup,
-                    playersLength: teamRoster.players ? teamRoster.players.length : 0,
-                    rosterItemsLength: teamRoster.rosterItems ? teamRoster.rosterItems.length : 0,
-                    allKeys: Object.keys(teamRoster)
-                });
+                // Get league info to get player details
+                statusDiv.innerHTML = '🔍 Fetching player details...';
+                const leagueUrl = `https://www.fantrax.com/fxea/general/getLeagueInfo?leagueId=${leagueId}`;
+                const leagueRes = await fetch(leagueUrl);
                 
-                // Try different possible fields
-                let players = teamRoster.players || teamRoster.rosterItems || teamRoster.lineup || [];
-                
-                // If still empty, try getting from nested structure
-                if (players.length === 0 && teamRoster.roster) {
-                    players = teamRoster.roster.players || teamRoster.roster.items || [];
+                if (!leagueRes.ok) {
+                    throw new Error('Failed to fetch league data');
                 }
                 
-                console.log('Players on roster:', players);
+                const leagueData = await leagueRes.json();
+                console.log('League data:', leagueData);
                 
-                if (players.length === 0) {
+                // Get player IDs from roster
+                let playerIds = teamRoster.players || teamRoster.rosterItems || teamRoster.lineup || [];
+                
+                if (playerIds.length === 0 && teamRoster.roster) {
+                    playerIds = teamRoster.roster.players || teamRoster.roster.items || [];
+                }
+                
+                console.log('Player IDs:', playerIds);
+                console.log('Player info available:', leagueData.playerInfo ? Object.keys(leagueData.playerInfo).length : 0);
+                
+                if (playerIds.length === 0) {
                     statusDiv.innerHTML = '⚠️ No players found on roster';
                     return;
                 }
                 
-                // Filter for pitchers
-                const pitchers = players.filter(p => {
-                    const pos = p.position || '';
-                    return pos.includes('P') || pos === 'SP' || pos === 'RP';
+                // Map player IDs to full player data
+                const pitchers = [];
+                playerIds.forEach(playerItem => {
+                    // playerItem might be an object with 'id' or just a string ID
+                    const playerId = typeof playerItem === 'string' ? playerItem : playerItem.id;
+                    const playerPos = typeof playerItem === 'object' ? playerItem.position : null;
+                    
+                    // Only include pitchers
+                    if (playerPos && !playerPos.includes('P')) return;
+                    
+                    // Get player details from playerInfo
+                    if (leagueData.playerInfo && leagueData.playerInfo[playerId]) {
+                        const player = leagueData.playerInfo[playerId];
+                        const pos = player.position || player.pos || playerPos || '';
+                        
+                        // Double-check it's a pitcher
+                        if (pos.includes('P') || pos === 'SP' || pos === 'RP') {
+                            pitchers.push({
+                                name: player.name || player.playerName || player.fullName,
+                                team: player.team || player.proTeam || player.mlbTeam || '',
+                                position: pos
+                            });
+                        }
+                    }
                 });
                 
                 console.log('Found pitchers:', pitchers);
@@ -903,10 +924,10 @@
                     div.innerHTML = `
                         <div class="form-group"><input type="text" class="fantasy-team" value="${teamName}"></div>
                         <div class="form-group" style="position: relative;">
-                            <input type="text" class="pitcher-name" value="${p.name || p.playerName}">
+                            <input type="text" class="pitcher-name" value="${p.name}">
                             <div class="search-results" style="display: none;"></div>
                         </div>
-                        <div class="form-group"><input type="text" class="mlb-team" value="${p.team || p.proTeam || ''}" maxlength="3"></div>
+                        <div class="form-group"><input type="text" class="mlb-team" value="${p.team}" maxlength="3"></div>
                         <div class="form-group"><input type="date" class="game-date" min="${weekStart}" max="${weekEnd}" value="${weekStart}"></div>
                         <button class="btn btn-danger" onclick="removeRow(this)">✕</button>
                     `;
