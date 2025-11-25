@@ -229,7 +229,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v2.1.0
+        v2.1.1
     </div>
     
     <script>
@@ -788,28 +788,36 @@
             const container = document.getElementById('pitcherList');
             container.innerHTML = '';
             
+            let notFoundCount = 0;
+            
             // Add each pitcher with auto-filled team
             pitcherNames.forEach(name => {
                 const div = document.createElement('div');
                 div.className = 'pitcher-entry';
                 
-                // Try to find the pitcher in MLB database
-                const pitcher = mlbPitchers.find(p => 
-                    p.fullName.toLowerCase() === name.toLowerCase() ||
-                    p.fullName.toLowerCase().includes(name.toLowerCase()) ||
-                    name.toLowerCase().includes(p.fullName.toLowerCase())
-                );
-                
                 let mlbTeam = '';
                 let pitcherDisplayName = name;
                 
-                if (pitcher && pitcher.currentTeam) {
-                    // Found the pitcher - use their team
-                    mlbTeam = pitcher.currentTeam.abbreviation || '';
-                    pitcherDisplayName = pitcher.fullName; // Use official name
+                // Try to find the pitcher in MLB database (only if loaded)
+                if (typeof mlbPitchers !== 'undefined' && mlbPitchers.length > 0) {
+                    const pitcher = mlbPitchers.find(p => 
+                        p.fullName.toLowerCase() === name.toLowerCase() ||
+                        p.fullName.toLowerCase().includes(name.toLowerCase()) ||
+                        name.toLowerCase().includes(p.fullName.toLowerCase())
+                    );
+                    
+                    if (pitcher && pitcher.currentTeam) {
+                        // Found the pitcher - use their team
+                        mlbTeam = pitcher.currentTeam.abbreviation || '';
+                        pitcherDisplayName = pitcher.fullName; // Use official name
+                    } else {
+                        // Not found - mark as N/A
+                        mlbTeam = 'N/A';
+                        notFoundCount++;
+                    }
                 } else {
-                    // Not found - mark as N/A
-                    mlbTeam = 'N/A';
+                    // MLB database not loaded yet - leave blank
+                    mlbTeam = '';
                 }
                 
                 div.innerHTML = `
@@ -828,18 +836,11 @@
             // Clear the textarea
             document.getElementById('bulkPaste').value = '';
             
-            // Count how many were found vs not found
-            const notFound = pitcherNames.filter(name => {
-                const pitcher = mlbPitchers.find(p => 
-                    p.fullName.toLowerCase() === name.toLowerCase() ||
-                    p.fullName.toLowerCase().includes(name.toLowerCase()) ||
-                    name.toLowerCase().includes(p.fullName.toLowerCase())
-                );
-                return !pitcher || !pitcher.currentTeam;
-            }).length;
-            
-            if (notFound > 0) {
-                alert(`Added ${pitcherNames.length} pitchers!\n\n${notFound} pitcher(s) marked as N/A - not found in 2024 MLB database.\nThey may be rookies, minor leaguers, or check spelling.`);
+            // Show appropriate message
+            if (typeof mlbPitchers === 'undefined' || mlbPitchers.length === 0) {
+                alert(`Added ${pitcherNames.length} pitchers!\n\nMLB database still loading... Teams will need to be filled in manually.`);
+            } else if (notFoundCount > 0) {
+                alert(`Added ${pitcherNames.length} pitchers!\n\n${notFoundCount} pitcher(s) marked as N/A - not found in 2024 MLB database.\nThey may be rookies, minor leaguers, or check spelling.`);
             } else {
                 alert(`✅ Added ${pitcherNames.length} pitchers! All teams auto-filled.`);
             }
