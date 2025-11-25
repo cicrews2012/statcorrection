@@ -771,48 +771,40 @@
             
             try {
                 console.log('🔍 Loading teams from Fantrax...');
-                const url = `https://www.fantrax.com/fxea/general/getLeagueInfo?leagueId=${leagueId}`;
-                const res = await fetch(url);
                 
-                if (!res.ok) {
-                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                // Try getTeamRosters endpoint which should have actual rosters
+                const rostersUrl = `https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${leagueId}`;
+                const rostersRes = await fetch(rostersUrl);
+                
+                if (!rostersRes.ok) {
+                    throw new Error(`HTTP ${rostersRes.status}: ${rostersRes.statusText}`);
                 }
                 
-                const data = await res.json();
-                console.log('Fantrax response:', data);
+                const rostersData = await rostersRes.json();
+                console.log('Team Rosters response:', rostersData);
                 
                 const select = document.getElementById('fantraxTeamSelect');
                 select.innerHTML = '<option value="">-- Select Your Team --</option>';
                 
-                // rosterInfo contains the actual teams with roster data
-                if (data.rosterInfo) {
+                // getTeamRosters should return rosters keyed by team ID
+                if (rostersData && rostersData.rosters) {
+                    console.log('Roster keys:', Object.keys(rostersData.rosters));
+                    
                     let teamCount = 0;
-                    Object.keys(data.rosterInfo).forEach(teamId => {
-                        const team = data.rosterInfo[teamId];
+                    Object.keys(rostersData.rosters).forEach(teamId => {
+                        const roster = rostersData.rosters[teamId];
+                        console.log(`Team ${teamId}:`, roster);
                         
-                        // Skip constraint/config keys - only get actual team IDs
-                        if (teamId.startsWith('Team ') || 
-                            teamId === 'positionConstraints' || 
-                            teamId.startsWith('max') || 
-                            teamId.startsWith('min')) {
-                            return;
-                        }
-                        
-                        // Only add if it has rosterItems (actual roster)
-                        if (team.rosterItems && Array.isArray(team.rosterItems)) {
-                            const option = document.createElement('option');
-                            option.value = teamId;
-                            option.textContent = team.teamName || team.name || `Team ${teamId}`;
-                            select.appendChild(option);
-                            teamCount++;
-                        }
+                        const option = document.createElement('option');
+                        option.value = teamId;
+                        option.textContent = roster.teamName || roster.name || `Team ${teamId}`;
+                        select.appendChild(option);
+                        teamCount++;
                     });
                     
-                    if (teamCount === 0) {
-                        console.warn('⚠️ No teams with rosters found. Keys in rosterInfo:', Object.keys(data.rosterInfo));
-                    } else {
-                        console.log('✅ Loaded', teamCount, 'teams from Fantrax');
-                    }
+                    console.log('✅ Loaded', teamCount, 'teams from Fantrax');
+                } else {
+                    console.warn('⚠️ No rosters found in response:', rostersData);
                 }
                 
             } catch(e) {
@@ -833,7 +825,6 @@
             statusDiv.innerHTML = '🔍 Fetching data from Fantrax...';
             
             try {
-                // Get the week dates
                 const weekStart = document.getElementById('weekStart').value;
                 const weekEnd = document.getElementById('weekEnd').value;
                 
@@ -843,62 +834,50 @@
                     return;
                 }
                 
-                // Get league info
-                const leagueUrl = `https://www.fantrax.com/fxea/general/getLeagueInfo?leagueId=${leagueId}`;
-                const leagueRes = await fetch(leagueUrl);
+                // Get rosters
+                const rostersUrl = `https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${leagueId}`;
+                const rostersRes = await fetch(rostersUrl);
                 
-                if (!leagueRes.ok) {
-                    throw new Error('Failed to fetch league data');
+                if (!rostersRes.ok) {
+                    throw new Error('Failed to fetch roster data');
                 }
                 
-                const data = await leagueRes.json();
-                console.log('Full league data:', data);
+                const rostersData = await rostersRes.json();
+                console.log('Rosters data:', rostersData);
                 
-                // Get team roster from rosterInfo
-                if (!data.rosterInfo || !data.rosterInfo[teamId]) {
+                if (!rostersData.rosters || !rostersData.rosters[teamId]) {
                     statusDiv.innerHTML = '❌ Could not find roster for selected team';
                     return;
                 }
                 
-                const teamRoster = data.rosterInfo[teamId];
+                const teamRoster = rostersData.rosters[teamId];
                 const teamName = teamRoster.teamName || 'Your Team';
                 
                 console.log('Team roster:', teamRoster);
                 
-                // Get player IDs from roster
-                const playerIds = teamRoster.rosterItems || [];
-                console.log('Player IDs on roster:', playerIds);
+                // Get players from roster
+                const players = teamRoster.players || [];
+                console.log('Players on roster:', players);
                 
-                if (!playerIds.length) {
+                if (players.length === 0) {
                     statusDiv.innerHTML = '⚠️ No players found on roster';
                     return;
                 }
                 
-                // Get player details from playerInfo
-                const pitchers = [];
-                playerIds.forEach(playerId => {
-                    if (data.playerInfo && data.playerInfo[playerId]) {
-                        const player = data.playerInfo[playerId];
-                        // Check if player is a pitcher
-                        const pos = player.position || player.pos || '';
-                        if (pos.includes('P') || pos === 'SP' || pos === 'RP') {
-                            pitchers.push({
-                                name: player.name || player.playerName,
-                                team: player.team || player.proTeam || player.mlbTeam || '',
-                                position: pos
-                            });
-                        }
-                    }
+                // Filter for pitchers
+                const pitchers = players.filter(p => {
+                    const pos = p.position || '';
+                    return pos.includes('P') || pos === 'SP' || pos === 'RP';
                 });
                 
                 console.log('Found pitchers:', pitchers);
                 
                 if (pitchers.length === 0) {
-                    statusDiv.innerHTML = '⚠️ No pitchers found on roster. Add them manually below.';
+                    statusDiv.innerHTML = '⚠️ No pitchers found on roster';
                     return;
                 }
                 
-                // Clear existing entries and populate
+                // Populate the form
                 const container = document.getElementById('pitcherList');
                 container.innerHTML = '';
                 
@@ -909,10 +888,10 @@
                     div.innerHTML = `
                         <div class="form-group"><input type="text" class="fantasy-team" value="${teamName}"></div>
                         <div class="form-group" style="position: relative;">
-                            <input type="text" class="pitcher-name" value="${p.name}">
+                            <input type="text" class="pitcher-name" value="${p.name || p.playerName}">
                             <div class="search-results" style="display: none;"></div>
                         </div>
-                        <div class="form-group"><input type="text" class="mlb-team" value="${p.team}" maxlength="3"></div>
+                        <div class="form-group"><input type="text" class="mlb-team" value="${p.team || p.proTeam || ''}" maxlength="3"></div>
                         <div class="form-group"><input type="date" class="game-date" min="${weekStart}" max="${weekEnd}" value="${weekStart}"></div>
                         <button class="btn btn-danger" onclick="removeRow(this)">✕</button>
                     `;
