@@ -173,28 +173,7 @@
                 </div>
             </div>
             
-            <div style="background: #f0f9ff; border: 2px solid #3b82f6; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <h4 style="margin-bottom: 10px;">🔗 Fantrax Integration</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                    <div>
-                        <label style="font-size: 13px; font-weight: 600; margin-bottom: 5px; display: block;">League ID</label>
-                        <input type="text" id="fantraxLeagueId" value="cbla2gq5mhdvy7q4" style="padding: 8px; border: 2px solid #e5e7eb; border-radius: 6px; width: 100%; font-size: 13px;">
-                    </div>
-                    <div>
-                        <label style="font-size: 13px; font-weight: 600; margin-bottom: 5px; display: block;">Secret ID</label>
-                        <input type="text" id="fantraxSecretId" value="vocazvbjlcp76mt9" style="padding: 8px; border: 2px solid #e5e7eb; border-radius: 6px; width: 100%; font-size: 13px;">
-                    </div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px;">
-                    <select id="fantraxTeamSelect" style="padding: 8px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 13px;">
-                        <option value="">-- Select Your Team --</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="loadFromFantrax()" style="white-space: nowrap;">📥 Load from Fantrax</button>
-                </div>
-                <div id="fantraxStatus" style="font-size: 12px; color: #6b7280; margin-top: 10px;"></div>
-            </div>
-            
-            <h3>OR Manually Add Pitcher Appearances</h3>
+            <h2>Week Setup</h2>
             <p style="color: #6b7280; font-size: 14px; margin-bottom: 10px;">
                 Add each active appearance for ALL teams with overages
             </p>
@@ -269,10 +248,7 @@
             
             loadMLBPitchers();
             
-            // Load Fantrax teams
-            loadFantraxTeams();
-            
-            // Load test data (commented out - using Fantrax now)
+            // Load test data (commented out - using bulk paste now)
             // loadTestData();
             
             document.getElementById('pitcherList').addEventListener('input', function(e) {
@@ -838,114 +814,6 @@
             document.getElementById('bulkPaste').value = '';
             
             alert(`Added ${pitcherNames.length} pitchers! Now fill in their MLB teams and adjust dates as needed.`);
-        }
-        
-        async function loadFantraxTeams() {
-            const leagueId = document.getElementById('fantraxLeagueId').value;
-            if (!leagueId) return;
-            
-            try {
-                console.log('🔍 Loading teams from Fantrax...');
-                
-                // Try getTeamRosters endpoint which should have actual rosters
-                const rostersUrl = `https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${leagueId}`;
-                const rostersRes = await fetch(rostersUrl);
-                
-                if (!rostersRes.ok) {
-                    throw new Error(`HTTP ${rostersRes.status}: ${rostersRes.statusText}`);
-                }
-                
-                const rostersData = await rostersRes.json();
-                console.log('Team Rosters response:', rostersData);
-                
-                const select = document.getElementById('fantraxTeamSelect');
-                select.innerHTML = '<option value="">-- Select Your Team --</option>';
-                
-                // getTeamRosters should return rosters keyed by team ID
-                if (rostersData && rostersData.rosters) {
-                    console.log('Roster keys:', Object.keys(rostersData.rosters));
-                    
-                    let teamCount = 0;
-                    Object.keys(rostersData.rosters).forEach(teamId => {
-                        const roster = rostersData.rosters[teamId];
-                        console.log(`Team ${teamId}:`, roster);
-                        
-                        const option = document.createElement('option');
-                        option.value = teamId;
-                        option.textContent = roster.teamName || roster.name || `Team ${teamId}`;
-                        select.appendChild(option);
-                        teamCount++;
-                    });
-                    
-                    console.log('✅ Loaded', teamCount, 'teams from Fantrax');
-                } else {
-                    console.warn('⚠️ No rosters found in response:', rostersData);
-                }
-                
-            } catch(e) {
-                console.error('❌ Error loading Fantrax teams:', e);
-            }
-        }
-        
-        async function loadFromFantrax() {
-            const leagueId = document.getElementById('fantraxLeagueId').value;
-            const teamId = document.getElementById('fantraxTeamSelect').value;
-            const statusDiv = document.getElementById('fantraxStatus');
-            
-            if (!teamId) {
-                alert('Please select your team first');
-                return;
-            }
-            
-            statusDiv.innerHTML = '🔍 Fetching data from Fantrax...';
-            
-            try {
-                const weekStart = document.getElementById('weekStart').value;
-                const weekEnd = document.getElementById('weekEnd').value;
-                
-                if (!weekStart || !weekEnd) {
-                    alert('Please select week start and end dates first');
-                    statusDiv.innerHTML = '';
-                    return;
-                }
-                
-                // Get rosters to find player IDs
-                const rostersUrl = `https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${leagueId}`;
-                const rostersRes = await fetch(rostersUrl);
-                
-                if (!rostersRes.ok) {
-                    throw new Error('Failed to fetch roster data');
-                }
-                
-                const rostersData = await rostersRes.json();
-                console.log('Rosters data:', rostersData);
-                
-                if (!rostersData.rosters || !rostersData.rosters[teamId]) {
-                    statusDiv.innerHTML = '❌ Could not find roster for selected team';
-                    return;
-                }
-                
-                const teamRoster = rostersData.rosters[teamId];
-                const teamName = teamRoster.teamName || 'Your Team';
-                
-                console.log('Full team roster object:', teamRoster);
-                console.log('Team roster keys:', Object.keys(teamRoster));
-                
-                // Check if roster has player details directly
-                if (teamRoster.playerDetails) {
-                    console.log('Found playerDetails:', teamRoster.playerDetails);
-                }
-                if (teamRoster.rosterDetails) {
-                    console.log('Found rosterDetails:', teamRoster.rosterDetails);
-                }
-                
-                statusDiv.innerHTML = '⚠️ Fantrax API does not provide player names in the available endpoints. Please use the "Load Test Data" button or add pitchers manually.';
-                return;
-                
-            } catch(e) {
-                console.error('Error loading from Fantrax:', e);
-                statusDiv.innerHTML = `❌ Error: ${e.message}<br><small>You can still add pitchers manually below.</small>`;
-            }
         }
         
         async function testFantraxId() {
