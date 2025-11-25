@@ -198,6 +198,21 @@
             <p style="color: #6b7280; font-size: 14px; margin-bottom: 10px;">
                 Add each active appearance for ALL teams with overages
             </p>
+            
+            <div style="background: #f0f9ff; border: 2px solid #3b82f6; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <h4 style="margin-bottom: 10px;">📋 Bulk Paste Pitchers</h4>
+                <p style="font-size: 13px; color: #374151; margin-bottom: 10px;">
+                    Copy pitcher names from Fantrax (one per line) and paste below:
+                </p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" id="bulkTeamName" placeholder="Fantasy Team Name" style="padding: 8px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 13px;">
+                    <input type="date" id="bulkGameDate" style="padding: 8px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 13px;">
+                    <button class="btn btn-primary" onclick="processBulkPaste()">Add All</button>
+                </div>
+                <textarea id="bulkPaste" placeholder="Paste pitcher names here (one per line)&#10;&#10;Example:&#10;Max Fried&#10;Corbin Burnes&#10;Spencer Schwellenbach" 
+                    style="width: 100%; height: 120px; padding: 10px; border: 2px solid #e5e7eb; border-radius: 6px; font-family: monospace; font-size: 13px;"></textarea>
+            </div>
+            
             <button class="btn btn-secondary" onclick="loadTestData()" style="margin-bottom: 15px; font-size: 13px;">
                 📋 Load Test Data (March 31-Apr 6)
             </button>
@@ -765,6 +780,66 @@
         
         function resetAll() { if (confirm('Clear all?')) location.reload(); }
         
+        function processBulkPaste() {
+            const teamName = document.getElementById('bulkTeamName').value.trim();
+            const gameDate = document.getElementById('bulkGameDate').value;
+            const pasteText = document.getElementById('bulkPaste').value.trim();
+            
+            if (!teamName) {
+                alert('Please enter a fantasy team name');
+                return;
+            }
+            
+            if (!gameDate) {
+                alert('Please select a game date');
+                return;
+            }
+            
+            if (!pasteText) {
+                alert('Please paste pitcher names');
+                return;
+            }
+            
+            const weekStart = document.getElementById('weekStart').value;
+            const weekEnd = document.getElementById('weekEnd').value;
+            
+            // Split by newlines and filter out empty lines
+            const pitcherNames = pasteText.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+            
+            if (pitcherNames.length === 0) {
+                alert('No pitcher names found');
+                return;
+            }
+            
+            // Clear existing entries
+            const container = document.getElementById('pitcherList');
+            container.innerHTML = '';
+            
+            // Add each pitcher
+            pitcherNames.forEach(name => {
+                const div = document.createElement('div');
+                div.className = 'pitcher-entry';
+                div.innerHTML = `
+                    <div class="form-group"><input type="text" class="fantasy-team" value="${teamName}"></div>
+                    <div class="form-group" style="position: relative;">
+                        <input type="text" class="pitcher-name" value="${name}">
+                        <div class="search-results" style="display: none;"></div>
+                    </div>
+                    <div class="form-group"><input type="text" class="mlb-team" placeholder="NYY" maxlength="3"></div>
+                    <div class="form-group"><input type="date" class="game-date" min="${weekStart}" max="${weekEnd}" value="${gameDate}"></div>
+                    <button class="btn btn-danger" onclick="removeRow(this)">✕</button>
+                `;
+                container.appendChild(div);
+            });
+            
+            // Clear the textarea
+            document.getElementById('bulkPaste').value = '';
+            
+            alert(`Added ${pitcherNames.length} pitchers! Now fill in their MLB teams and adjust dates as needed.`);
+        }
+        
         async function loadFantraxTeams() {
             const leagueId = document.getElementById('fantraxLeagueId').value;
             if (!leagueId) return;
@@ -853,99 +928,19 @@
                 const teamRoster = rostersData.rosters[teamId];
                 const teamName = teamRoster.teamName || 'Your Team';
                 
-                // Get league info to get player details
-                statusDiv.innerHTML = '🔍 Fetching player details...';
-                const leagueUrl = `https://www.fantrax.com/fxea/general/getLeagueInfo?leagueId=${leagueId}`;
-                const leagueRes = await fetch(leagueUrl);
+                console.log('Full team roster object:', teamRoster);
+                console.log('Team roster keys:', Object.keys(teamRoster));
                 
-                if (!leagueRes.ok) {
-                    throw new Error('Failed to fetch league data');
+                // Check if roster has player details directly
+                if (teamRoster.playerDetails) {
+                    console.log('Found playerDetails:', teamRoster.playerDetails);
+                }
+                if (teamRoster.rosterDetails) {
+                    console.log('Found rosterDetails:', teamRoster.rosterDetails);
                 }
                 
-                const leagueData = await leagueRes.json();
-                console.log('League data:', leagueData);
-                
-                // Get player IDs from roster
-                let playerIds = teamRoster.players || teamRoster.rosterItems || teamRoster.lineup || [];
-                
-                if (playerIds.length === 0 && teamRoster.roster) {
-                    playerIds = teamRoster.roster.players || teamRoster.roster.items || [];
-                }
-                
-                console.log('Player IDs:', playerIds);
-                console.log('PlayerInfo exists?', !!leagueData.playerInfo);
-                console.log('PlayerInfo keys:', leagueData.playerInfo ? Object.keys(leagueData.playerInfo).slice(0, 10) : 'none');
-                console.log('Sample playerInfo entry:', leagueData.playerInfo ? leagueData.playerInfo[Object.keys(leagueData.playerInfo)[0]] : 'none');
-                
-                if (playerIds.length === 0) {
-                    statusDiv.innerHTML = '⚠️ No players found on roster';
-                    return;
-                }
-                
-                // Map player IDs to full player data
-                const pitchers = [];
-                playerIds.forEach((playerItem, idx) => {
-                    // playerItem might be an object with 'id' or just a string ID
-                    const playerId = typeof playerItem === 'string' ? playerItem : playerItem.id;
-                    const playerPos = typeof playerItem === 'object' ? playerItem.position : null;
-                    
-                    console.log(`Processing player ${idx}:`, {playerItem, playerId, playerPos});
-                    
-                    // Only include pitchers
-                    if (playerPos && !playerPos.includes('P')) {
-                        console.log(`  Skipping non-pitcher: ${playerPos}`);
-                        return;
-                    }
-                    
-                    // Get player details from playerInfo
-                    if (leagueData.playerInfo && leagueData.playerInfo[playerId]) {
-                        const player = leagueData.playerInfo[playerId];
-                        console.log(`  Found player data:`, player);
-                        
-                        const pos = player.position || player.pos || playerPos || '';
-                        
-                        // Double-check it's a pitcher
-                        if (pos.includes('P') || pos === 'SP' || pos === 'RP') {
-                            pitchers.push({
-                                name: player.name || player.playerName || player.fullName,
-                                team: player.team || player.proTeam || player.mlbTeam || '',
-                                position: pos
-                            });
-                        }
-                    } else {
-                        console.log(`  Player ${playerId} not found in playerInfo`);
-                    }
-                });
-                
-                console.log('Found pitchers:', pitchers);
-                
-                if (pitchers.length === 0) {
-                    statusDiv.innerHTML = '⚠️ No pitchers found on roster';
-                    return;
-                }
-                
-                // Populate the form
-                const container = document.getElementById('pitcherList');
-                container.innerHTML = '';
-                
-                pitchers.forEach(p => {
-                    const div = document.createElement('div');
-                    div.className = 'pitcher-entry';
-                    
-                    div.innerHTML = `
-                        <div class="form-group"><input type="text" class="fantasy-team" value="${teamName}"></div>
-                        <div class="form-group" style="position: relative;">
-                            <input type="text" class="pitcher-name" value="${p.name}">
-                            <div class="search-results" style="display: none;"></div>
-                        </div>
-                        <div class="form-group"><input type="text" class="mlb-team" value="${p.team}" maxlength="3"></div>
-                        <div class="form-group"><input type="date" class="game-date" min="${weekStart}" max="${weekEnd}" value="${weekStart}"></div>
-                        <button class="btn btn-danger" onclick="removeRow(this)">✕</button>
-                    `;
-                    container.appendChild(div);
-                });
-                
-                statusDiv.innerHTML = `✅ Loaded ${pitchers.length} pitchers! Adjust dates as needed, then click "Fetch Games".`;
+                statusDiv.innerHTML = '⚠️ Fantrax API does not provide player names in the available endpoints. Please use the "Load Test Data" button or add pitchers manually.';
+                return;
                 
             } catch(e) {
                 console.error('Error loading from Fantrax:', e);
