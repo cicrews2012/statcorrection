@@ -241,7 +241,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v2.3.0
+        v2.4.0
     </div>
     
     <script>
@@ -610,9 +610,10 @@
                 apps.forEach((a,j) => {
                     if (a.type === 'SP') sp++; else rp++;
                     const ok = (a.type === 'SP' && sp <= maxS) || (a.type === 'RP' && rp <= maxR);
+                    const statusText = ok ? `✓ Counts (${a.type === 'SP' ? sp + '/' + maxS + ' SP' : rp + '/' + maxR + ' RP'})` : `✗ Excluded (${a.type === 'SP' ? sp + '/' + maxS + ' SP' : rp + '/' + maxR + ' RP'})`;
                     html += `<tr class="${ok?'counted':'excluded'}"><td>${j+1}</td><td>${a.name}</td><td>${a.type}</td>
                         <td>${a.gameTime.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</td>
-                        <td>${ok?'✓ Counts':'✗ Excluded'}</td></tr>`;
+                        <td>${statusText}</td></tr>`;
                 });
                 html += '</table></div></div>';
             });
@@ -685,6 +686,36 @@
                         </div>
                         <div style="font-size:12px;color:#6b7280;margin-top:5px;">${p.counted.length} counted, ${p.excluded.length} excluded</div></div>`;
                 });
+                
+                // Calculate combined team stats
+                let teamIP=0, teamER=0, teamK=0, teamBB=0, teamH=0, teamHB=0, teamSV=0, teamHLD=0, teamQS=0;
+                apps.forEach(a => {
+                    if (a.type === 'SP') sp++; else rp++;
+                    const ok = (a.type === 'SP' && sp <= maxS) || (a.type === 'RP' && rp <= maxR);
+                    if (ok && a.stats) {
+                        teamIP += parseIP(a.stats.inningsPitched||0);
+                        teamER += parseInt(a.stats.earnedRuns||0);
+                        teamK += parseInt(a.stats.strikeOuts||0);
+                        teamBB += parseInt(a.stats.baseOnBalls||0);
+                        teamH += parseInt(a.stats.hits||0);
+                        teamHB += parseInt(a.stats.hitBatsmen||0);
+                        teamSV += parseInt(a.stats.saves||0);
+                        teamHLD += parseInt(a.stats.holds||0);
+                        const gameIP = parseIP(a.stats.inningsPitched||0);
+                        const gameER = parseInt(a.stats.earnedRuns||0);
+                        if (gameIP >= 6 && gameER <= 3) teamQS++;
+                    }
+                });
+                
+                // Reset sp/rp counters for display
+                sp = 0; rp = 0;
+                
+                html += `<div style="background:#f3f4f6;padding:15px;border-radius:6px;margin-top:15px;border:2px solid #d1d5db;">
+                    <strong style="font-size:14px;">Combined Team Stats (Counted Only)</strong>
+                    <div style="font-size:13px;color:#374151;margin-top:8px;">
+                        IP:${teamIP.toFixed(1)} ER:${teamER} K:${teamK} BB:${teamBB} H:${teamH} HB:${teamHB}
+                        ${teamSV > 0 ? ` SV:${teamSV}` : ''}${teamHLD > 0 ? ` HLD:${teamHLD}` : ''}${teamQS > 0 ? ` QS:${teamQS}` : ''}
+                    </div></div>`;
                 
                 html += `<div style="background:#667eea;color:white;padding:15px;border-radius:6px;margin-top:15px;">
                     <strong>Team Total: ${total.toFixed(2)} points</strong></div></div></div>`;
