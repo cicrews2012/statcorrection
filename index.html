@@ -241,12 +241,17 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v2.2.3
+        v2.3.0
     </div>
     
     <script>
         let allPitchers = [];
         let mlbPitchers = [];
+        
+        // Function to remove accents for better matching
+        function removeAccents(str) {
+            return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        }
         let gameData = [];
         
         window.onload = function() {
@@ -392,7 +397,7 @@
                 div.style.display = 'block';
                 return;
             }
-            const matches = allPitchers.filter(p => p.name.toLowerCase().includes(query)).slice(0, 10);
+            const matches = allPitchers.filter(p => removeAccents(p.name.toLowerCase()).includes(removeAccents(query))).slice(0, 10);
             if (!matches.length) {
                 div.innerHTML = '<div class="search-result-item">No matches</div>';
                 div.style.display = 'block';
@@ -557,7 +562,7 @@
                                     }
                                 }
                                 // Check by name if no ID
-                                if (!id && p.person.fullName.toLowerCase().includes(name.toLowerCase())) {
+                                if (!id && removeAccents(p.person.fullName.toLowerCase()).includes(removeAccents(name.toLowerCase()))) {
                                     console.log(`    ✓ Found by name: ${p.person.fullName}`);
                                     if (p.stats?.pitching && (p.stats.pitching.battersFaced > 0 || parseFloat(p.stats.pitching.inningsPitched||0) > 0)) {
                                         pitcher = p; teamData = t; break;
@@ -858,9 +863,9 @@
                 // Try to find the pitcher in MLB database (only if loaded)
                 if (typeof mlbPitchers !== 'undefined' && mlbPitchers.length > 0) {
                     const pitcher = mlbPitchers.find(p => 
-                        p.fullName.toLowerCase() === name.toLowerCase() ||
-                        p.fullName.toLowerCase().includes(name.toLowerCase()) ||
-                        name.toLowerCase().includes(p.fullName.toLowerCase())
+                        removeAccents(p.fullName.toLowerCase()) === removeAccents(name.toLowerCase()) ||
+                        removeAccents(p.fullName.toLowerCase()).includes(removeAccents(name.toLowerCase())) ||
+                        removeAccents(name.toLowerCase()).includes(removeAccents(p.fullName.toLowerCase()))
                     );
                     
                     if (pitcher && pitcher.currentTeam) {
