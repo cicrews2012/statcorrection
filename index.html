@@ -154,6 +154,18 @@
                 <button class="btn btn-secondary" onclick="resetAll()">🔄 Clear</button>
             </div>
             
+            <div id="mlbLoadingStatus" style="background: #fef3c7; border: 2px solid #f59e0b; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+                <span style="animation: spin 1s linear infinite; display: inline-block;">⏳</span>
+                <span>Loading MLB pitcher database...</span>
+            </div>
+            
+            <style>
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+            </style>
+            
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 30px;">
                 <div class="form-group">
                     <label>Week Start</label>
@@ -229,11 +241,12 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v2.1.2
+        v2.2.0
     </div>
     
     <script>
         let allPitchers = [];
+        let mlbPitchers = [];
         let gameData = [];
         
         window.onload = function() {
@@ -335,6 +348,10 @@
                     allPitchers = data.people
                         .filter(p => p.primaryPosition && p.primaryPosition.abbreviation === 'P')
                         .map(p => ({ name: p.fullName, id: p.id, team: p.currentTeam?.abbreviation || 'FA' }));
+                    
+                    // Also create mlbPitchers for bulk paste auto-fill
+                    mlbPitchers = data.people.filter(p => p.primaryPosition && p.primaryPosition.abbreviation === 'P');
+                    
                     console.log('✅ Loaded ' + allPitchers.length + ' pitchers');
                     
                     // Check for Chase Dollander specifically
@@ -344,8 +361,27 @@
                     } else {
                         console.log('⚠️ Chase Dollander not in 2024 roster (may be rookie/minor leaguer)');
                     }
+                    
+                    // Update loading status indicator
+                    const statusDiv = document.getElementById('mlbLoadingStatus');
+                    if (statusDiv) {
+                        statusDiv.style.background = '#d1fae5';
+                        statusDiv.style.borderColor = '#10b981';
+                        statusDiv.innerHTML = '<span>✅</span><span>MLB pitcher database loaded (' + allPitchers.length + ' pitchers)</span>';
+                    }
                 }
-            } catch(e) { console.error('❌ Error loading pitchers:', e); }
+            } catch(e) { 
+                console.error('❌ Error loading pitchers:', e);
+                
+                // Update status to show error
+                const statusDiv = document.getElementById('mlbLoadingStatus');
+                if (statusDiv) {
+                    statusDiv.style.background = '#fee2e2';
+                    statusDiv.style.borderColor = '#ef4444';
+                    statusDiv.innerHTML = '<span>❌</span><span>Failed to load MLB database. Auto-fill will not work.</span>';
+                }
+            }
+        }
         }
         
         function searchPitcher(input) {
