@@ -229,7 +229,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v2.1.1
+        v2.1.2
     </div>
     
     <script>
@@ -784,9 +784,8 @@
                 return;
             }
             
-            // Clear existing entries
+            // Get container (don't clear - append to existing)
             const container = document.getElementById('pitcherList');
-            container.innerHTML = '';
             
             let notFoundCount = 0;
             
