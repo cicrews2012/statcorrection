@@ -241,7 +241,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v2.2.1
+        v2.2.3
     </div>
     
     <script>
@@ -440,6 +440,29 @@
         
         async function fetchGames() {
             const entries = document.querySelectorAll('.pitcher-entry');
+            
+            // Check for future dates before processing
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            let hasFutureDates = false;
+            entries.forEach(e => {
+                const dateInput = e.querySelector('.game-date');
+                if (dateInput.value) {
+                    const gameDate = new Date(dateInput.value);
+                    gameDate.setHours(0, 0, 0, 0);
+                    
+                    if (gameDate > today) {
+                        hasFutureDates = true;
+                    }
+                }
+            });
+            
+            if (hasFutureDates) {
+                const proceed = confirm('⚠️ Warning: Some game dates are in the FUTURE.\n\nThe MLB Stats API only has data for games that have already been played.\n\nFuture games will show "Could not find game data" errors.\n\nContinue anyway?');
+                if (!proceed) return;
+            }
+            
             const pitchers = [];
             entries.forEach(e => {
                 const ft = e.querySelector('.fantasy-team').value;
@@ -481,7 +504,7 @@
             
             if (notFound.length > 0) {
                 const names = notFound.map(p => `${p.name} (${p.mlbTeam}, ${p.gameDate})`).join('\n');
-                alert(`⚠️ Could not find game data for:\n\n${names}\n\nThese pitchers will not appear in Step 2. Check:\n- Team abbreviation is correct\n- Date is correct\n- Pitcher actually appeared in that game`);
+                alert(`⚠️ Could not find game data for:\n\n${names}\n\nMost common reasons:\n\n1. Pitcher did NOT actually pitch that day\n   → Check MLB.com game logs to verify\n\n2. Wrong team abbreviation\n   → Use: NYY, BOS, PHI, MIA, etc.\n\n3. Game was postponed/cancelled\n\n4. Pitcher was on roster but didn't appear\n\nCheck browser console (F12) for detailed logs.`);
             }
             
             displayReview();
