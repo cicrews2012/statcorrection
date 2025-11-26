@@ -241,7 +241,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v2.4.0
+        v2.4.1
     </div>
     
     <script>
@@ -687,11 +687,12 @@
                         <div style="font-size:12px;color:#6b7280;margin-top:5px;">${p.counted.length} counted, ${p.excluded.length} excluded</div></div>`;
                 });
                 
-                // Calculate combined team stats
+                // Calculate combined team stats (only counted appearances)
                 let teamIP=0, teamER=0, teamK=0, teamBB=0, teamH=0, teamHB=0, teamSV=0, teamHLD=0, teamQS=0;
+                let spCount = 0, rpCount = 0;
                 apps.forEach(a => {
-                    if (a.type === 'SP') sp++; else rp++;
-                    const ok = (a.type === 'SP' && sp <= maxS) || (a.type === 'RP' && rp <= maxR);
+                    if (a.type === 'SP') spCount++; else rpCount++;
+                    const ok = (a.type === 'SP' && spCount <= maxS) || (a.type === 'RP' && rpCount <= maxR);
                     if (ok && a.stats) {
                         teamIP += parseIP(a.stats.inningsPitched||0);
                         teamER += parseInt(a.stats.earnedRuns||0);
@@ -706,9 +707,6 @@
                         if (gameIP >= 6 && gameER <= 3) teamQS++;
                     }
                 });
-                
-                // Reset sp/rp counters for display
-                sp = 0; rp = 0;
                 
                 html += `<div style="background:#f3f4f6;padding:15px;border-radius:6px;margin-top:15px;border:2px solid #d1d5db;">
                     <strong style="font-size:14px;">Combined Team Stats (Counted Only)</strong>
