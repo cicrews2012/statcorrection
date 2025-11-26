@@ -241,7 +241,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v2.2.0
+        v2.2.1
     </div>
     
     <script>
@@ -342,7 +342,7 @@
         
         async function loadMLBPitchers() {
             try {
-                const res = await fetch('https://statsapi.mlb.com/api/v1/sports/1/players?season=2024');
+                const res = await fetch('https://statsapi.mlb.com/api/v1/sports/1/players?season=2025');
                 const data = await res.json();
                 if (data.people) {
                     allPitchers = data.people
@@ -359,7 +359,7 @@
                     if (dollander) {
                         console.log('Found Chase Dollander:', dollander);
                     } else {
-                        console.log('⚠️ Chase Dollander not in 2024 roster (may be rookie/minor leaguer)');
+                        console.log('⚠️ Chase Dollander not in 2025 roster (may be rookie/minor leaguer)');
                     }
                     
                     // Update loading status indicator
@@ -381,7 +381,6 @@
                     statusDiv.innerHTML = '<span>❌</span><span>Failed to load MLB database. Auto-fill will not work.</span>';
                 }
             }
-        }
         }
         
         function searchPitcher(input) {
