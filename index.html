@@ -241,7 +241,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v2.5.1
+        v2.6.0
     </div>
     
     <script>
@@ -694,10 +694,26 @@
                         cpts = ip > 0 ? pts * (cip / ip) : 0;
                     } else if (!p.counted.length) cpts = 0;
                     
+                    // Determine color based on counted vs excluded appearances
+                    let borderColor, textColor;
+                    if (p.counted.length > 0 && p.excluded.length === 0) {
+                        // All appearances count - GREEN
+                        borderColor = '#10b981';
+                        textColor = '#10b981';
+                    } else if (p.counted.length === 0 && p.excluded.length > 0) {
+                        // All appearances excluded - RED
+                        borderColor = '#ef4444';
+                        textColor = '#ef4444';
+                    } else {
+                        // Mixed (some count, some excluded) - ORANGE
+                        borderColor = '#f59e0b';
+                        textColor = '#f59e0b';
+                    }
+                    
                     total += cpts;
-                    html += `<div style="background:white;padding:15px;margin:10px 0;border-radius:6px;border-left:4px solid ${cpts>0?'#10b981':'#ef4444'};">
+                    html += `<div style="background:white;padding:15px;margin:10px 0;border-radius:6px;border-left:4px solid ${borderColor};">
                         <div style="display:flex;justify-content:space-between;"><strong>${pn}</strong>
-                        <strong style="color:${cpts>0?'#10b981':'#ef4444'};">${cpts.toFixed(2)} pts</strong></div>
+                        <strong style="color:${textColor};">${cpts.toFixed(2)} pts</strong></div>
                         <div style="font-size:13px;color:#6b7280;margin-top:5px;">
                             IP:${ip.toFixed(1)} ER:${er} K:${k} BB:${bb} H:${h} HB:${hb}
                             ${sv > 0 ? ` SV:${sv}` : ''}${hld > 0 ? ` HLD:${hld}` : ''}${qs > 0 ? ` QS:${qs}` : ''}
