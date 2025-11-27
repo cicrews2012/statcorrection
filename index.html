@@ -241,7 +241,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v2.4.1
+        v2.5.1
     </div>
     
     <script>
@@ -574,8 +574,26 @@
                         
                         if (pitcher) {
                             const isStart = teamData.pitchers && teamData.pitchers[0] == pitcher.person.id;
-                            console.log(`✅ Found ${pitcher.person.fullName} - ${isStart ? 'SP' : 'RP'}`);
-                            return { gameTime: new Date(game.gameDate), type: isStart ? 'SP' : 'RP', stats: pitcher.stats.pitching };
+                            
+                            // Get pitcher's appearance order (their index in the pitchers array)
+                            const pitcherOrder = teamData.pitchers ? teamData.pitchers.indexOf(pitcher.person.id) : 0;
+                            
+                            // Try to get actual first pitch time, fall back to scheduled time
+                            let gameTime = new Date(game.gameDate); // Scheduled time
+                            
+                            // Check if boxscore has actual game start time
+                            if (bd.gameInfo && bd.gameInfo.firstPitch) {
+                                gameTime = new Date(bd.gameInfo.firstPitch);
+                                console.log(`   Using actual first pitch: ${gameTime.toLocaleTimeString()}`);
+                            } else {
+                                console.log(`   Using scheduled start: ${gameTime.toLocaleTimeString()} (actual first pitch not available)`);
+                            }
+                            
+                            // Add milliseconds offset based on pitcher order (ensures stable sort for same-game pitchers)
+                            gameTime = new Date(gameTime.getTime() + (pitcherOrder * 1000));
+                            
+                            console.log(`✅ Found ${pitcher.person.fullName} - ${isStart ? 'SP' : 'RP'} (appearance #${pitcherOrder + 1} in game)`);
+                            return { gameTime: gameTime, type: isStart ? 'SP' : 'RP', stats: pitcher.stats.pitching };
                         } else {
                             console.log('❌ Pitcher not found in this game');
                         }
