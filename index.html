@@ -624,7 +624,8 @@
                                     const teamData = boxData.teams[side];
                                     if (teamData.team.id === mlbPlayer.currentTeam.id) {
                                         const pitcher = Object.values(teamData.players).find(p => 
-                                            p.person && p.person.id === mlbPlayer.id && p.stats && p.stats.pitching
+                                            p.person && p.person.id === mlbPlayer.id && p.stats && p.stats.pitching &&
+                                            (parseFloar(p.stats.pitching.inningsPitched || 0) > 0 || partInt(p.stats.pitching.battersFaced || 0) >0)
                                         );
                                         
                                         if (pitcher) {
