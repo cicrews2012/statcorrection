@@ -406,7 +406,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v4.0.0
+        v4.1.0
     </div>
     
     <script>
@@ -959,32 +959,53 @@
                     // Determine color based on counted vs excluded appearances
                     let borderColor, textColor;
                     if (p.counted.length > 0 && p.excluded.length === 0) {
-                        // All appearances count - GREEN
                         borderColor = '#10b981';
                         textColor = '#10b981';
                     } else if (p.counted.length === 0 && p.excluded.length > 0) {
-                        // All appearances excluded - RED
                         borderColor = '#ef4444';
                         textColor = '#ef4444';
                     } else {
-                        // Mixed (some count, some excluded) - ORANGE
                         borderColor = '#f59e0b';
                         textColor = '#f59e0b';
                     }
                     
-                    total += ip; // Track total IP instead of points
-                    html += `<div style="background:white;padding:15px;margin:10px 0;border-radius:6px;border-left:4px solid ${borderColor};">
-                        <div style="display:flex;justify-content:space-between;"><strong>${pn}</strong>
-                        <strong style="color:${textColor};">${ip.toFixed(1)} IP</strong></div>
-                        <div style="font-size:13px;color:#374151;margin-top:5px;display:grid;grid-template-columns:1fr 1fr;gap:5px;">
-                            <div>IP: ${ip.toFixed(1)}</div>
-                            <div>K: ${k}</div>
-                            <div>QS: ${qs}</div>
-                            <div>ERA: ${era.toFixed(2)}</div>
-                            <div>SVH: ${svh}</div>
-                            <div>BB+HBP: ${bbhbp}</div>
+                    total += ip;
+                    html += `<div style="background:#1f2937;padding:20px;margin:15px 0;border-radius:8px;border-left:5px solid ${borderColor};box-shadow:0 4px 6px rgba(0,0,0,0.3);">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                            <strong style="font-size:18px;color:#e5e7eb;">${pn}</strong>
+                            <strong style="font-size:20px;color:${textColor};">${ip.toFixed(1)} IP</strong>
                         </div>
-                        <div style="font-size:12px;color:#6b7280;margin-top:5px;">${p.counted.length} counted, ${p.excluded.length} excluded</div></div>`;
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;background:#111827;padding:15px;border-radius:6px;">
+                            <div>
+                                <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Innings Pitched</div>
+                                <div style="font-size:18px;font-weight:600;color:#e5e7eb;margin-top:4px;">${ip.toFixed(1)}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Strikeouts</div>
+                                <div style="font-size:18px;font-weight:600;color:#60a5fa;margin-top:4px;">${k}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Quality Starts</div>
+                                <div style="font-size:18px;font-weight:600;color:#34d399;margin-top:4px;">${qs}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">ERA</div>
+                                <div style="font-size:18px;font-weight:600;color:#f59e0b;margin-top:4px;">${era.toFixed(2)}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Saves + Holds</div>
+                                <div style="font-size:18px;font-weight:600;color:#a78bfa;margin-top:4px;">${svh}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">BB + HBP</div>
+                                <div style="font-size:18px;font-weight:600;color:#ef4444;margin-top:4px;">${bbhbp}</div>
+                            </div>
+                        </div>
+                        <div style="font-size:13px;color:#9ca3af;margin-top:12px;padding-top:12px;border-top:1px solid #374151;">
+                            <span style="color:#10b981;">✓ ${p.counted.length} counted</span>
+                            ${p.excluded.length > 0 ? `<span style="color:#ef4444;margin-left:15px;">✗ ${p.excluded.length} excluded</span>` : ''}
+                        </div>
+                    </div>`;
                 });
                 
                 // Calculate combined team stats (only counted appearances)
@@ -1304,10 +1325,11 @@
             const ws_summary = XLSX.utils.aoa_to_sheet(summaryData);
             XLSX.utils.book_append_sheet(wb, ws_summary, 'Summary');
             
-            // SHEET 2: Players Requiring Adjustment
+            // SHEET 2: Players Requiring Adjustment (Hierarchical by Team)
             const playersData = [];
-            playersData.push(['Players Requiring Manual Adjustment']);
-            playersData.push(['Fantasy Team', 'Pitcher', '# Excluded Apps', 'IP to Remove', 'ER to Remove', 'K to Remove', 'BB to Remove', 'HB to Remove', 'SV to Remove', 'HLD to Remove', 'QS to Remove', 'SVH to Remove', 'BB+HBP to Remove', 'ERA of Excluded']);
+            playersData.push(['PLAYERS REQUIRING MANUAL ADJUSTMENT']);
+            playersData.push(['Organized by Team for Easy Reference']);
+            playersData.push([]);
             
             const playerExclusions = {};
             Object.keys(teams).sort().forEach(tn => {
@@ -1351,17 +1373,51 @@
                 });
             });
             
-            Object.keys(playerExclusions).sort().forEach(key => {
+            // Organize by team for hierarchical display
+            const teamPlayerMap = {};
+            Object.keys(playerExclusions).forEach(key => {
                 const p = playerExclusions[key];
-                const svh = p.sv + p.hld;
-                const bbhbp = p.bb + p.hb;
-                const era = p.ip > 0 ? (p.er * 9) / p.ip : 0;
-                
-                playersData.push([p.team, p.name, p.count, p.ip, p.er, p.k, p.bb, p.hb, p.sv, p.hld, p.qs, svh, bbhbp, era]);
+                if (!teamPlayerMap[p.team]) {
+                    teamPlayerMap[p.team] = [];
+                }
+                teamPlayerMap[p.team].push(p);
             });
             
-            if (Object.keys(playerExclusions).length === 0) {
-                playersData.push(['No players with excluded appearances this week']);
+            // Write hierarchical structure
+            if (Object.keys(teamPlayerMap).length === 0) {
+                playersData.push(['No teams with excluded appearances this week']);
+            } else {
+                Object.keys(teamPlayerMap).sort().forEach(teamName => {
+                    // Team header row
+                    playersData.push([`TEAM: ${teamName}`]);
+                    playersData.push(['Player', '# Apps', 'IP', 'ER', 'K', 'BB', 'HB', 'SV', 'HLD', 'QS', 'SVH', 'BB+HBP', 'ERA']);
+                    
+                    // Player rows for this team
+                    teamPlayerMap[teamName].forEach(p => {
+                        const svh = p.sv + p.hld;
+                        const bbhbp = p.bb + p.hb;
+                        const era = p.ip > 0 ? (p.er * 9) / p.ip : 0;
+                        
+                        playersData.push([
+                            `  ${p.name}`, // Indent player name
+                            p.count,
+                            p.ip,
+                            p.er,
+                            p.k,
+                            p.bb,
+                            p.hb,
+                            p.sv,
+                            p.hld,
+                            p.qs,
+                            svh,
+                            bbhbp,
+                            era
+                        ]);
+                    });
+                    
+                    // Blank row between teams
+                    playersData.push([]);
+                });
             }
             
             const ws_players = XLSX.utils.aoa_to_sheet(playersData);
