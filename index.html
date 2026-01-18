@@ -490,7 +490,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v4.5.0
+        v4.5.1
     </div>
     
     <script>
@@ -551,16 +551,18 @@
                 const line = lines[i].trim();
                 if (!line) continue;
                 
-                // Parse CSV (handle quoted fields)
-                const match = line.match(/"([^"]*?)","([^"]*?)","([^"]*?)","([^"]*?)"/);
+                // Parse CSV - need more columns to get Status (fantasy team)
+                // Columns: ID, Player, Team(MLB), Position, RkOv, Status(FantasyTeam), ...
+                const match = line.match(/"([^"]*?)","([^"]*?)","([^"]*?)","([^"]*?)","([^"]*?)","([^"]*?)"/);
                 if (match) {
-                    const player = match[2]; // Player name
-                    const team = match[3];   // Team (Status column in Fantrax)
-                    const position = match[4]; // Position
+                    const player = match[2];      // Player name
+                    const mlbTeam = match[3];     // MLB team (not used)
+                    const position = match[4];    // Position
+                    const fantasyTeam = match[6]; // Status = Fantasy team name
                     
-                    // Only include pitchers (SP, RP, or P)
-                    if (position.includes('SP') || position.includes('RP') || position === 'P') {
-                        roster.push({ team: team, player: player });
+                    // Only include pitchers (SP, RP, or P) and skip free agents
+                    if ((position.includes('SP') || position.includes('RP') || position === 'P') && fantasyTeam && fantasyTeam !== 'FA') {
+                        roster.push({ team: fantasyTeam, player: player });
                     }
                 }
             }
