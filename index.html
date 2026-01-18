@@ -241,7 +241,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v2.6.0
+        v3.0.0
     </div>
     
     <script>
@@ -685,14 +685,14 @@
                         }
                     });
                     
-                    // Calculate points using league scoring rules
-                    const pts = (ip*1.5) + (er*-2) + (k*0.75) + (bb*-0.25) + (h*-0.25) + (hb*-0.25) + (sv*1) + (hld*1) + (qs*1);
+                    // NEW LEAGUE RULES - H2H Categories (no points)
+                    // Categories: IP, QS, K, ERA, SVH (Saves+Holds), BB+HBP
+                    const svh = sv + hld; // Saves + Holds combined
+                    const bbhbp = bb + hb; // Walks + Hit By Pitch combined
+                    const era = ip > 0 ? (er * 9) / ip : 0; // ERA calculation
                     
-                    let cpts = pts;
-                    if (p.counted.length > 0 && p.excluded.length > 0) {
-                        const cip = p.counted.reduce((s,a) => s + parseIP(a.stats?.inningsPitched||0), 0);
-                        cpts = ip > 0 ? pts * (cip / ip) : 0;
-                    } else if (!p.counted.length) cpts = 0;
+                    // For display purposes, show if appearances were counted or excluded
+                    // (In new system, stats still count but need manual removal by commissioner)
                     
                     // Determine color based on counted vs excluded appearances
                     let borderColor, textColor;
@@ -710,13 +710,17 @@
                         textColor = '#f59e0b';
                     }
                     
-                    total += cpts;
+                    total += ip; // Track total IP instead of points
                     html += `<div style="background:white;padding:15px;margin:10px 0;border-radius:6px;border-left:4px solid ${borderColor};">
                         <div style="display:flex;justify-content:space-between;"><strong>${pn}</strong>
-                        <strong style="color:${textColor};">${cpts.toFixed(2)} pts</strong></div>
-                        <div style="font-size:13px;color:#6b7280;margin-top:5px;">
-                            IP:${ip.toFixed(1)} ER:${er} K:${k} BB:${bb} H:${h} HB:${hb}
-                            ${sv > 0 ? ` SV:${sv}` : ''}${hld > 0 ? ` HLD:${hld}` : ''}${qs > 0 ? ` QS:${qs}` : ''}
+                        <strong style="color:${textColor};">${ip.toFixed(1)} IP</strong></div>
+                        <div style="font-size:13px;color:#374151;margin-top:5px;display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+                            <div>IP: ${ip.toFixed(1)}</div>
+                            <div>K: ${k}</div>
+                            <div>QS: ${qs}</div>
+                            <div>ERA: ${era.toFixed(2)}</div>
+                            <div>SVH: ${svh}</div>
+                            <div>BB+HBP: ${bbhbp}</div>
                         </div>
                         <div style="font-size:12px;color:#6b7280;margin-top:5px;">${p.counted.length} counted, ${p.excluded.length} excluded</div></div>`;
                 });
@@ -742,15 +746,23 @@
                     }
                 });
                 
+                const teamSVH = teamSV + teamHLD;
+                const teamBBHBP = teamBB + teamHB;
+                const teamERA = teamIP > 0 ? (teamER * 9) / teamIP : 0;
+                
                 html += `<div style="background:#f3f4f6;padding:15px;border-radius:6px;margin-top:15px;border:2px solid #d1d5db;">
                     <strong style="font-size:14px;">Combined Team Stats (Counted Only)</strong>
-                    <div style="font-size:13px;color:#374151;margin-top:8px;">
-                        IP:${teamIP.toFixed(1)} ER:${teamER} K:${teamK} BB:${teamBB} H:${teamH} HB:${teamHB}
-                        ${teamSV > 0 ? ` SV:${teamSV}` : ''}${teamHLD > 0 ? ` HLD:${teamHLD}` : ''}${teamQS > 0 ? ` QS:${teamQS}` : ''}
+                    <div style="font-size:13px;color:#374151;margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                        <div><strong>IP:</strong> ${teamIP.toFixed(1)}</div>
+                        <div><strong>K:</strong> ${teamK}</div>
+                        <div><strong>QS:</strong> ${teamQS}</div>
+                        <div><strong>ERA:</strong> ${teamERA.toFixed(2)}</div>
+                        <div><strong>SVH:</strong> ${teamSVH}</div>
+                        <div><strong>BB+HBP:</strong> ${teamBBHBP}</div>
                     </div></div>`;
                 
                 html += `<div style="background:#667eea;color:white;padding:15px;border-radius:6px;margin-top:15px;">
-                    <strong>Team Total: ${total.toFixed(2)} points</strong></div></div></div>`;
+                    <strong>Team Total IP (Counted): ${total.toFixed(1)}</strong></div></div></div>`;
             });
             document.getElementById('calcResults').innerHTML = html;
         }
@@ -777,12 +789,15 @@
             });
             
             // Add summary section FIRST
-            csv += 'Summary by Team\n';
-            csv += 'Fantasy Team,Original Fantrax Points (All Appearances),Total Points to Remove,Corrected Net Points\n';
+            csv += 'Summary by Team - H2H CATEGORIES\n';
+            csv += 'Fantasy Team,Total IP (All),IP to Remove,Corrected IP,Total K (All),K to Remove,Corrected K,Total QS (All),QS to Remove,Corrected QS,Total SVH (All),SVH to Remove,Corrected SVH,Total BB+HBP (All),BB+HBP to Remove,Corrected BB+HBP,Weighted ERA (All),ERA (Counted Only)\n';
             
             Object.keys(teams).sort().forEach(tn => {
                 const apps = teams[tn].sort((a,b) => a.gameTime - b.gameTime);
-                let sp = 0, rp = 0, totalAllPoints = 0, totalRemoved = 0, totalCounted = 0;
+                let sp = 0, rp = 0;
+                let allIP=0, allER=0, allK=0, allBB=0, allHB=0, allSV=0, allHLD=0, allQS=0;
+                let countedIP=0, countedER=0, countedK=0, countedBB=0, countedHB=0, countedSV=0, countedHLD=0, countedQS=0;
+                let removedIP=0, removedER=0, removedK=0, removedBB=0, removedHB=0, removedSV=0, removedHLD=0, removedQS=0;
                 
                 apps.forEach(a => {
                     if (a.type === 'SP') sp++; else rp++;
@@ -793,30 +808,57 @@
                     const er = parseInt(stats.earnedRuns || 0);
                     const k = parseInt(stats.strikeOuts || 0);
                     const bb = parseInt(stats.baseOnBalls || 0);
-                    const h = parseInt(stats.hits || 0);
                     const hb = parseInt(stats.hitBatsmen || 0);
                     const sv = parseInt(stats.saves || 0);
                     const hld = parseInt(stats.holds || 0);
                     const qs = (ip >= 6 && er <= 3) ? 1 : 0;
                     
-                    const points = (ip*1.5) + (er*-2) + (k*0.75) + (bb*-0.25) + (h*-0.25) + (hb*-0.25) + (sv*1) + (hld*1) + (qs*1);
-                    
-                    // Add to total (what Fantrax shows - includes everything)
-                    totalAllPoints += points;
+                    // Add to ALL totals
+                    allIP += ip;
+                    allER += er;
+                    allK += k;
+                    allBB += bb;
+                    allHB += hb;
+                    allSV += sv;
+                    allHLD += hld;
+                    allQS += qs;
                     
                     if (ok) {
-                        totalCounted += points;
+                        countedIP += ip;
+                        countedER += er;
+                        countedK += k;
+                        countedBB += bb;
+                        countedHB += hb;
+                        countedSV += sv;
+                        countedHLD += hld;
+                        countedQS += qs;
                     } else {
-                        totalRemoved += points;
+                        removedIP += ip;
+                        removedER += er;
+                        removedK += k;
+                        removedBB += bb;
+                        removedHB += hb;
+                        removedSV += sv;
+                        removedHLD += hld;
+                        removedQS += qs;
                     }
                 });
                 
-                csv += `"${tn}",${totalAllPoints.toFixed(2)},${totalRemoved.toFixed(2)},${totalCounted.toFixed(2)}\n`;
+                const allSVH = allSV + allHLD;
+                const allBBHBP = allBB + allHB;
+                const countedSVH = countedSV + countedHLD;
+                const countedBBHBP = countedBB + countedHB;
+                const removedSVH = removedSV + removedHLD;
+                const removedBBHBP = removedBB + removedHB;
+                const allERA = allIP > 0 ? (allER * 9) / allIP : 0;
+                const countedERA = countedIP > 0 ? (countedER * 9) / countedIP : 0;
+                
+                csv += `"${tn}",${allIP.toFixed(1)},${removedIP.toFixed(1)},${countedIP.toFixed(1)},${allK},${removedK},${countedK},${allQS},${removedQS},${countedQS},${allSVH},${removedSVH},${countedSVH},${allBBHBP},${removedBBHBP},${countedBBHBP},${allERA.toFixed(2)},${countedERA.toFixed(2)}\n`;
             });
             
             // Now add detailed breakdown
             csv += '\n\nDetailed Breakdown by Appearance\n';
-            csv += 'Fantasy Team,Pitcher,MLB Team,Game Date,Game Time (ET),Type,Status,Points,Points to Remove,IP,ER,K,BB,H,HB,SV,HLD,QS\n';
+            csv += 'Fantasy Team,Pitcher,MLB Team,Game Date,Game Time (ET),Type,Status,IP,ER,K,BB,HB,SV,HLD,QS,SVH,BB+HBP,ERA\n';
             
             Object.keys(teams).sort().forEach(tn => {
                 const apps = teams[tn].sort((a,b) => a.gameTime - b.gameTime);
@@ -826,28 +868,25 @@
                     if (a.type === 'SP') sp++; else rp++;
                     const ok = (a.type === 'SP' && sp <= maxS) || (a.type === 'RP' && rp <= maxR);
                     
-                    // Calculate points for this single appearance
+                    // Calculate stats for this appearance
                     const stats = a.stats || {};
                     const ip = parseIP(stats.inningsPitched || 0);
                     const er = parseInt(stats.earnedRuns || 0);
                     const k = parseInt(stats.strikeOuts || 0);
                     const bb = parseInt(stats.baseOnBalls || 0);
-                    const h = parseInt(stats.hits || 0);
                     const hb = parseInt(stats.hitBatsmen || 0);
                     const sv = parseInt(stats.saves || 0);
                     const hld = parseInt(stats.holds || 0);
                     const qs = (ip >= 6 && er <= 3) ? 1 : 0;
-                    
-                    const points = (ip*1.5) + (er*-2) + (k*0.75) + (bb*-0.25) + (h*-0.25) + (hb*-0.25) + (sv*1) + (hld*1) + (qs*1);
-                    const countedPoints = ok ? points : 0;
-                    const removedPoints = ok ? 0 : points;
+                    const svh = sv + hld;
+                    const bbhbp = bb + hb;
+                    const era = ip > 0 ? (er * 9) / ip : 0;
                     
                     const date = a.gameTime.toLocaleDateString('en-US', {month: 'numeric', day: 'numeric', year: 'numeric'});
                     const time = a.gameTime.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit', hour12: true});
                     
                     csv += `"${tn}","${a.name}","${a.mlbTeam}","${date}","${time}","${a.type}","${ok?'COUNTS':'EXCLUDED'}",`;
-                    csv += `${countedPoints.toFixed(2)},${removedPoints.toFixed(2)},`;
-                    csv += `${stats.inningsPitched||0},${er},${k},${bb},${h},${hb},${sv},${hld},${qs}\n`;
+                    csv += `${ip.toFixed(1)},${er},${k},${bb},${hb},${sv},${hld},${qs},${svh},${bbhbp},${era.toFixed(2)}\n`;
                 });
             });
             
