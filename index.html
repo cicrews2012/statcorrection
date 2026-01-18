@@ -164,6 +164,30 @@
         .counted { background: #1f2937; }
         .excluded { background: #1f2937; opacity: 0.7; }
         .loading { text-align: center; padding: 40px; color: #9ca3af; }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { border-radius: 8px; }
+            .header { padding: 20px; }
+            .header h1 { font-size: 22px; }
+            .tabs { flex-wrap: wrap; }
+            .tab { font-size: 12px; padding: 12px 8px; }
+            .tab-content { padding: 15px; }
+            .pitcher-entry { grid-template-columns: 1fr; gap: 8px; }
+            .summary-card { padding: 15px; flex-direction: column; gap: 10px; }
+            .summary-card h2 { font-size: 18px; }
+            table { font-size: 13px; }
+            th, td { padding: 8px 6px; }
+            .btn { padding: 8px 12px; font-size: 13px; }
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 { font-size: 18px; }
+            .tab { font-size: 11px; padding: 10px 6px; }
+            table { font-size: 12px; }
+            th, td { padding: 6px 4px; }
+        }
     </style>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -466,7 +490,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v4.4.0
+        v4.5.0
     </div>
     
     <script>
@@ -546,22 +570,25 @@
                 return;
             }
             
-            // Show loading message
-            const loadingMsg = `Processing ${roster.length} pitchers... This will take 1-2 minutes.`;
-            if (!confirm(loadingMsg + '\n\nClick OK to start.')) return;
+            // Show progress indicator
+            document.getElementById('rosterResults').style.display = 'block';
+            document.getElementById('rosterCheckboxes').innerHTML = `
+                <div style="text-align:center;padding:40px;">
+                    <div style="display:inline-block;width:50px;height:50px;border:5px solid #374151;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;"></div>
+                    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+                    <p style="color:#e5e7eb;margin-top:20px;font-size:16px;">Finding pitchers who pitched this week...</p>
+                    <p style="color:#9ca3af;font-size:13px;">Processing <span id="progressCount">0</span>/${roster.length} players</p>
+                </div>
+            `;
             
             // Find which pitchers pitched during the week
             rosterModeData = [];
-            const startDate = new Date(weekStart);
-            const endDate = new Date(weekEnd);
-            endDate.setHours(23, 59, 59);
+            const seenAppearances = new Set(); // Track unique appearances
             
             let processed = 0;
             for (const player of roster) {
                 processed++;
-                if (processed % 10 === 0) {
-                    console.log(`Processing ${processed}/${roster.length}...`);
-                }
+                document.getElementById('progressCount').textContent = processed;
                 
                 try {
                     // Search for player in MLB database
@@ -596,6 +623,14 @@
                                         );
                                         
                                         if (pitcher) {
+                                            // Create unique key to prevent duplicates
+                                            const appearanceKey = `${player.team}|${pitcher.person.id}|${game.gamePk}`;
+                                            
+                                            if (seenAppearances.has(appearanceKey)) {
+                                                continue; // Skip duplicate
+                                            }
+                                            seenAppearances.add(appearanceKey);
+                                            
                                             const isStart = teamData.pitchers && teamData.pitchers[0] == pitcher.person.id;
                                             const pitcherOrder = teamData.pitchers ? teamData.pitchers.indexOf(pitcher.person.id) : 0;
                                             
