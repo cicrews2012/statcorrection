@@ -406,7 +406,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v4.1.0
+        v4.2.0
     </div>
     
     <script>
@@ -860,52 +860,52 @@
             const totalTeams = Object.keys(teams).length;
             const teamsNoOverages = totalTeams - totalTeamsWithOverages;
             
-            html += `<div style="background:#f3f4f6;padding:20px;border-radius:8px;margin-bottom:20px;">
-                <h3 style="margin-top:0;">Weekly Overview</h3>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:15px;margin-top:15px;">
-                    <div style="background:white;padding:15px;border-radius:6px;border-left:4px solid #10b981;">
-                        <div style="font-size:24px;font-weight:bold;color:#10b981;">${teamsNoOverages}</div>
-                        <div style="font-size:13px;color:#6b7280;">Teams - No Overages</div>
+            html += `<div style="background:#1f2937;padding:25px;border-radius:12px;margin-bottom:20px;border:2px solid #374151;box-shadow:0 4px 6px rgba(0,0,0,0.3);">
+                <h3 style="margin:0 0 20px 0;color:#e5e7eb;font-size:20px;">Weekly Overview</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;">
+                    <div style="background:#111827;padding:20px;border-radius:8px;border-left:4px solid #10b981;box-shadow:0 4px 6px rgba(0,0,0,0.3);">
+                        <div style="font-size:48px;font-weight:bold;color:#10b981;">${teamsNoOverages}</div>
+                        <div style="font-size:14px;color:#9ca3af;margin-top:8px;">Teams - No Overages</div>
                     </div>
-                    <div style="background:white;padding:15px;border-radius:6px;border-left:4px solid #ef4444;">
-                        <div style="font-size:24px;font-weight:bold;color:#ef4444;">${totalTeamsWithOverages}</div>
-                        <div style="font-size:13px;color:#6b7280;">Teams - With Overages</div>
+                    <div style="background:#111827;padding:20px;border-radius:8px;border-left:4px solid #ef4444;box-shadow:0 4px 6px rgba(0,0,0,0.3);">
+                        <div style="font-size:48px;font-weight:bold;color:#ef4444;">${totalTeamsWithOverages}</div>
+                        <div style="font-size:14px;color:#9ca3af;margin-top:8px;">Teams - With Overages</div>
                     </div>
-                    <div style="background:white;padding:15px;border-radius:6px;border-left:4px solid #f59e0b;">
-                        <div style="font-size:24px;font-weight:bold;color:#f59e0b;">${totalExcludedApps}</div>
-                        <div style="font-size:13px;color:#6b7280;">Total Excluded Apps</div>
+                    <div style="background:#111827;padding:20px;border-radius:8px;border-left:4px solid #f59e0b;box-shadow:0 4px 6px rgba(0,0,0,0.3);">
+                        <div style="font-size:48px;font-weight:bold;color:#f59e0b;">${totalExcludedApps}</div>
+                        <div style="font-size:14px;color:#9ca3af;margin-top:8px;">Total Excluded Apps</div>
                     </div>
                 </div>
             </div>`;
             
             // Teams Requiring Adjustments Table
             if (dashboardData.length > 0) {
-                html += `<div style="background:#fff3cd;border:2px solid #f59e0b;padding:15px;border-radius:8px;margin-bottom:20px;">
-                    <h3 style="margin-top:0;color:#b45309;">⚠️ Teams Requiring Manual Adjustments</h3>
+                html += `<div style="background:#1f2937;border:2px solid #f59e0b;padding:20px;border-radius:12px;margin-bottom:20px;box-shadow:0 4px 6px rgba(0,0,0,0.3);">
+                    <h3 style="margin:0 0 15px 0;color:#fbbf24;display:flex;align-items:center;gap:10px;font-size:18px;"><span style="font-size:24px;">⚠️</span> Teams Requiring Manual Adjustments</h3>
                     <table style="width:100%;border-collapse:collapse;">
-                        <tr style="background:#f3f4f6;">
-                            <th style="padding:10px;text-align:left;border-bottom:2px solid #d1d5db;">Team</th>
-                            <th style="padding:10px;text-align:center;border-bottom:2px solid #d1d5db;">SP Overages</th>
-                            <th style="padding:10px;text-align:center;border-bottom:2px solid #d1d5db;">RP Overages</th>
-                            <th style="padding:10px;text-align:center;border-bottom:2px solid #d1d5db;">IP to Remove</th>
-                            <th style="padding:10px;text-align:center;border-bottom:2px solid #d1d5db;">Pitchers Affected</th>
+                        <tr style="background:#374151;">
+                            <th style="padding:12px;text-align:left;border-bottom:2px solid #4b5563;color:#e5e7eb;font-weight:600;">Team</th>
+                            <th style="padding:12px;text-align:center;border-bottom:2px solid #4b5563;color:#e5e7eb;font-weight:600;">SP Overages</th>
+                            <th style="padding:12px;text-align:center;border-bottom:2px solid #4b5563;color:#e5e7eb;font-weight:600;">RP Overages</th>
+                            <th style="padding:12px;text-align:center;border-bottom:2px solid #4b5563;color:#e5e7eb;font-weight:600;">IP to Remove</th>
+                            <th style="padding:12px;text-align:center;border-bottom:2px solid #4b5563;color:#e5e7eb;font-weight:600;">Pitchers Affected</th>
                         </tr>`;
                 
                 dashboardData.forEach(d => {
-                    html += `<tr style="border-bottom:1px solid #e5e7eb;">
-                        <td style="padding:10px;font-weight:600;">${d.team}</td>
-                        <td style="padding:10px;text-align:center;">${d.spOverages > 0 ? `<span style="color:#ef4444;">${d.spOverages}</span>` : '-'}</td>
-                        <td style="padding:10px;text-align:center;">${d.rpOverages > 0 ? `<span style="color:#ef4444;">${d.rpOverages}</span>` : '-'}</td>
-                        <td style="padding:10px;text-align:center;font-weight:600;">${d.excludedIP.toFixed(1)}</td>
-                        <td style="padding:10px;text-align:center;">${d.affectedPitchers}</td>
+                    html += `<tr style="border-bottom:1px solid #374151;background:#111827;">
+                        <td style="padding:12px;font-weight:600;color:#e5e7eb;">${d.team}</td>
+                        <td style="padding:12px;text-align:center;color:${d.spOverages > 0 ? '#ef4444' : '#6b7280'};">${d.spOverages > 0 ? d.spOverages : '-'}</td>
+                        <td style="padding:12px;text-align:center;color:${d.rpOverages > 0 ? '#ef4444' : '#6b7280'};">${d.rpOverages > 0 ? d.rpOverages : '-'}</td>
+                        <td style="padding:12px;text-align:center;font-weight:600;color:#fbbf24;">${d.excludedIP.toFixed(1)}</td>
+                        <td style="padding:12px;text-align:center;color:#9ca3af;">${d.affectedPitchers}</td>
                     </tr>`;
                 });
                 
                 html += `</table></div>`;
             } else {
-                html += `<div style="background:#d1fae5;border:2px solid #10b981;padding:15px;border-radius:8px;margin-bottom:20px;text-align:center;">
-                    <h3 style="margin:0;color:#065f46;">✅ No Overages This Week!</h3>
-                    <p style="margin:5px 0 0 0;color:#047857;">All teams stayed within limits.</p>
+                html += `<div style="background:#1f2937;border:2px solid #10b981;padding:20px;border-radius:12px;margin-bottom:20px;text-align:center;box-shadow:0 4px 6px rgba(0,0,0,0.3);">
+                    <h3 style="margin:0 0 10px 0;color:#34d399;font-size:22px;">✅ No Overages This Week!</h3>
+                    <p style="margin:0;color:#9ca3af;font-size:15px;">All teams stayed within limits.</p>
                 </div>`;
             }
             
@@ -1272,6 +1272,103 @@
             // Create workbook
             const wb = XLSX.utils.book_new();
             
+            // SHEET 0: QUICK REFERENCE (NEW - Condensed Commissioner View)
+            const quickData = [];
+            quickData.push(['QUICK REFERENCE - Commissioner Adjustments']);
+            quickData.push([`Week: ${ws_date} to ${we_date}`]);
+            quickData.push([]);
+            
+            // Build quick reference table
+            const quickTeams = [];
+            Object.keys(teams).sort().forEach(tn => {
+                const apps = teams[tn].sort((a,b) => a.gameTime - b.gameTime);
+                let sp = 0, rp = 0;
+                let removedIP = 0, removedK = 0, removedQS = 0, removedSVH = 0, removedBBHBP = 0;
+                let pitcherNames = [];
+                
+                apps.forEach(a => {
+                    if (a.type === 'SP') sp++; else rp++;
+                    const ok = (a.type === 'SP' && sp <= maxS) || (a.type === 'RP' && rp <= maxR);
+                    
+                    if (!ok) {
+                        const stats = a.stats || {};
+                        const ip = parseIP(stats.inningsPitched || 0);
+                        removedIP += ip;
+                        removedK += parseInt(stats.strikeOuts || 0);
+                        if (ip >= 6 && parseInt(stats.earnedRuns || 0) <= 3) removedQS++;
+                        removedSVH += parseInt(stats.saves || 0) + parseInt(stats.holds || 0);
+                        removedBBHBP += parseInt(stats.baseOnBalls || 0) + parseInt(stats.hitBatsmen || 0);
+                        
+                        if (!pitcherNames.includes(a.name)) pitcherNames.push(a.name);
+                    }
+                });
+                
+                if (removedIP > 0) {
+                    quickTeams.push({
+                        team: tn,
+                        pitchers: pitcherNames.join(', '),
+                        ip: removedIP,
+                        k: removedK,
+                        qs: removedQS,
+                        svh: removedSVH,
+                        bbhbp: removedBBHBP
+                    });
+                }
+            });
+            
+            if (quickTeams.length > 0) {
+                quickData.push(['Team', 'Pitchers to Adjust', 'Remove IP', 'Remove K', 'Remove QS', 'Remove SVH', 'Remove BB+HBP']);
+                quickTeams.forEach(t => {
+                    quickData.push([t.team, t.pitchers, t.ip, t.k, t.qs, t.svh, t.bbhbp]);
+                });
+            } else {
+                quickData.push(['No adjustments needed this week!']);
+            }
+            
+            const ws_quick = XLSX.utils.aoa_to_sheet(quickData);
+            
+            // Apply formatting to Quick Reference sheet
+            const quickRange = XLSX.utils.decode_range(ws_quick['!ref']);
+            for (let R = quickRange.s.r; R <= quickRange.e.r; ++R) {
+                for (let C = quickRange.s.c; C <= quickRange.e.c; ++C) {
+                    const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
+                    if (!ws_quick[cellAddress]) continue;
+                    
+                    // Apply styles
+                    if (!ws_quick[cellAddress].s) ws_quick[cellAddress].s = {};
+                    
+                    // Header row (row 3 in quick ref)
+                    if (R === 3) {
+                        ws_quick[cellAddress].s = {
+                            font: { bold: true, color: { rgb: "FFFFFF" } },
+                            fill: { fgColor: { rgb: "374151" } },
+                            alignment: { horizontal: "center", vertical: "center" }
+                        };
+                    }
+                    // Data rows - alternating colors
+                    else if (R > 3) {
+                        ws_quick[cellAddress].s = {
+                            fill: { fgColor: { rgb: R % 2 === 0 ? "1F2937" : "111827" } },
+                            alignment: { horizontal: "center", vertical: "center" },
+                            font: { color: { rgb: "E5E7EB" } }
+                        };
+                    }
+                }
+            }
+            
+            // Set column widths for Quick Reference
+            ws_quick['!cols'] = [
+                {wch: 15}, // Team
+                {wch: 30}, // Pitchers
+                {wch: 12}, // IP
+                {wch: 10}, // K
+                {wch: 10}, // QS
+                {wch: 10}, // SVH
+                {wch: 12}  // BB+HBP
+            ];
+            
+            XLSX.utils.book_append_sheet(wb, ws_quick, 'Quick Reference');
+            
             // SHEET 1: Summary by Team
             const summaryData = [];
             summaryData.push(['Matchup Period', 'Max Starts', 'Max Relief']);
@@ -1323,6 +1420,33 @@
             });
             
             const ws_summary = XLSX.utils.aoa_to_sheet(summaryData);
+            
+            // Format Summary sheet: center align all cells, alternating rows
+            const sumRange = XLSX.utils.decode_range(ws_summary['!ref']);
+            for (let R = sumRange.s.r; R <= sumRange.e.r; ++R) {
+                for (let C = sumRange.s.c; C <= sumRange.e.c; ++C) {
+                    const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
+                    if (!ws_summary[cellAddress]) continue;
+                    
+                    if (!ws_summary[cellAddress].s) ws_summary[cellAddress].s = {};
+                    
+                    // Header row (row 4)
+                    if (R === 4) {
+                        ws_summary[cellAddress].s = {
+                            font: { bold: true },
+                            alignment: { horizontal: "center", vertical: "center" }
+                        };
+                    }
+                    // Data rows - center align with alternating colors
+                    else if (R > 4) {
+                        ws_summary[cellAddress].s = {
+                            alignment: { horizontal: "center", vertical: "center" },
+                            fill: { fgColor: { rgb: R % 2 === 0 ? "F3F4F6" : "FFFFFF" } }
+                        };
+                    }
+                }
+            }
+            
             XLSX.utils.book_append_sheet(wb, ws_summary, 'Summary');
             
             // SHEET 2: Players Requiring Adjustment (Hierarchical by Team)
@@ -1421,6 +1545,46 @@
             }
             
             const ws_players = XLSX.utils.aoa_to_sheet(playersData);
+            
+            // Format Players sheet: center align, alternating colors
+            if (ws_players['!ref']) {
+                const plRange = XLSX.utils.decode_range(ws_players['!ref']);
+                for (let R = plRange.s.r; R <= plRange.e.r; ++R) {
+                    for (let C = plRange.s.c; C <= plRange.e.c; ++C) {
+                        const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
+                        if (!ws_players[cellAddress]) continue;
+                        
+                        if (!ws_players[cellAddress].s) ws_players[cellAddress].s = {};
+                        
+                        // Team header rows (contain "TEAM:")
+                        if (ws_players[cellAddress].v && typeof ws_players[cellAddress].v === 'string' && ws_players[cellAddress].v.includes('TEAM:')) {
+                            ws_players[cellAddress].s = {
+                                font: { bold: true, color: { rgb: "FFFFFF" } },
+                                fill: { fgColor: { rgb: "3B82F6" } },
+                                alignment: { horizontal: "left", vertical: "center" }
+                            };
+                        }
+                        // Column header rows (Player, # Apps, etc.)
+                        else if (ws_players[cellAddress].v === 'Player' || ws_players[cellAddress].v === '# Apps') {
+                            ws_players[cellAddress].s = {
+                                font: { bold: true },
+                                fill: { fgColor: { rgb: "374151" } },
+                                alignment: { horizontal: "center", vertical: "center" }
+                            };
+                        }
+                        // Data rows
+                        else if (R > 2) {
+                            ws_players[cellAddress].s = {
+                                alignment: { horizontal: "center", vertical: "center" },
+                                fill: { fgColor: { rgb: R % 2 === 0 ? "F3F4F6" : "FFFFFF" } }
+                            };
+                        }
+                    }
+                }
+                
+                ws_players['!cols'] = [{wch: 20}, {wch: 10}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 10}, {wch: 12}, {wch: 10}];
+            }
+            
             XLSX.utils.book_append_sheet(wb, ws_players, 'Players to Adjust');
             
             // SHEET 3: Detailed Breakdown
@@ -1457,6 +1621,36 @@
             });
             
             const ws_detail = XLSX.utils.aoa_to_sheet(detailData);
+            
+            // Format Detail sheet: center align, alternating colors
+            const detRange = XLSX.utils.decode_range(ws_detail['!ref']);
+            for (let R = detRange.s.r; R <= detRange.e.r; ++R) {
+                for (let C = detRange.s.c; C <= detRange.e.c; ++C) {
+                    const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
+                    if (!ws_detail[cellAddress]) continue;
+                    
+                    if (!ws_detail[cellAddress].s) ws_detail[cellAddress].s = {};
+                    
+                    // Header row (row 1)
+                    if (R === 1) {
+                        ws_detail[cellAddress].s = {
+                            font: { bold: true },
+                            fill: { fgColor: { rgb: "374151" } },
+                            alignment: { horizontal: "center", vertical: "center" }
+                        };
+                    }
+                    // Data rows - alternating colors
+                    else if (R > 1) {
+                        ws_detail[cellAddress].s = {
+                            alignment: { horizontal: "center", vertical: "center" },
+                            fill: { fgColor: { rgb: R % 2 === 0 ? "F3F4F6" : "FFFFFF" } }
+                        };
+                    }
+                }
+            }
+            
+            ws_detail['!cols'] = [{wch: 15}, {wch: 18}, {wch: 10}, {wch: 12}, {wch: 14}, {wch: 8}, {wch: 10}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 10}, {wch: 12}, {wch: 10}];
+            
             XLSX.utils.book_append_sheet(wb, ws_detail, 'Detailed Breakdown');
             
             // Internal check: Verify all sheets added
