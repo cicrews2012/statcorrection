@@ -490,7 +490,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v4.5.1
+        v4.5.2
     </div>
     
     <script>
@@ -560,8 +560,8 @@
                     const position = match[4];    // Position
                     const fantasyTeam = match[6]; // Status = Fantasy team name
                     
-                    // Only include pitchers (SP, RP, or P) and skip free agents
-                    if ((position.includes('SP') || position.includes('RP') || position === 'P') && fantasyTeam && fantasyTeam !== 'FA') {
+                    // Include pitchers (SP, RP, P) - include FA now since players can be dropped mid-week
+                    if ((position.includes('SP') || position.includes('RP') || position === 'P') && fantasyTeam) {
                         roster.push({ team: fantasyTeam, player: player });
                     }
                 }
@@ -571,6 +571,8 @@
                 alert('No pitchers found in CSV. Make sure you uploaded the Fantrax export.');
                 return;
             }
+            
+            console.log(`Found ${roster.length} pitchers in CSV`);
             
             // Show progress indicator
             document.getElementById('rosterResults').style.display = 'block';
@@ -586,6 +588,7 @@
             // Find which pitchers pitched during the week
             rosterModeData = [];
             const seenAppearances = new Set(); // Track unique appearances
+            const seenPlayerDates = new Set(); // Additional check: player + date
             
             let processed = 0;
             for (const player of roster) {
@@ -625,13 +628,17 @@
                                         );
                                         
                                         if (pitcher) {
-                                            // Create unique key to prevent duplicates
+                                            // CRITICAL: Multiple duplicate checks
                                             const appearanceKey = `${player.team}|${pitcher.person.id}|${game.gamePk}`;
+                                            const playerDateKey = `${player.team}|${pitcher.person.fullName}|${game.gameDate}`;
                                             
-                                            if (seenAppearances.has(appearanceKey)) {
-                                                continue; // Skip duplicate
+                                            if (seenAppearances.has(appearanceKey) || seenPlayerDates.has(playerDateKey)) {
+                                                console.log(`Skipping duplicate: ${pitcher.person.fullName} on ${game.gameDate} for ${player.team}`);
+                                                continue;
                                             }
+                                            
                                             seenAppearances.add(appearanceKey);
+                                            seenPlayerDates.add(playerDateKey);
                                             
                                             const isStart = teamData.pitchers && teamData.pitchers[0] == pitcher.person.id;
                                             const pitcherOrder = teamData.pitchers ? teamData.pitchers.indexOf(pitcher.person.id) : 0;
@@ -641,6 +648,8 @@
                                                 gameTime = new Date(boxData.gameInfo.firstPitch);
                                             }
                                             gameTime = new Date(gameTime.getTime() + (pitcherOrder * 1000));
+                                            
+                                            console.log(`Adding: ${pitcher.person.fullName} (${player.team}) on ${game.gameDate}`);
                                             
                                             rosterModeData.push({
                                                 fantasyTeam: player.team,
@@ -664,6 +673,7 @@
             }
             
             console.log(`Found ${rosterModeData.length} pitcher appearances`);
+            console.log(`Unique keys: ${seenAppearances.size}`);
             
             // Display results with checkboxes
             displayRosterResults();
