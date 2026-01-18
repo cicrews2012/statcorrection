@@ -8,47 +8,53 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             min-height: 100vh;
             padding: 20px;
         }
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            background: white;
+            background: #111827;
             border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             overflow: hidden;
         }
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
             color: white;
             padding: 30px;
             text-align: center;
         }
         .header h1 { font-size: 28px; margin-bottom: 10px; }
+        .header p { color: #e0e7ff; }
         .tabs {
             display: flex;
-            background: #f5f5f5;
-            border-bottom: 2px solid #ddd;
+            background: #1f2937;
+            border-bottom: 2px solid #374151;
         }
         .tab {
             flex: 1;
             padding: 15px;
             text-align: center;
             cursor: pointer;
-            background: #f5f5f5;
+            background: #1f2937;
             border: none;
             font-size: 14px;
             font-weight: 600;
-            color: #666;
+            color: #9ca3af;
+            transition: all 0.2s;
+        }
+        .tab:hover {
+            background: #374151;
+            color: #d1d5db;
         }
         .tab.active {
-            background: white;
-            color: #667eea;
-            border-bottom: 3px solid #667eea;
+            background: #111827;
+            color: #60a5fa;
+            border-bottom: 3px solid #3b82f6;
         }
-        .tab-content { display: none; padding: 30px; }
+        .tab-content { display: none; padding: 30px; background: #111827; }
         .tab-content.active { display: block; }
         .form-group { margin-bottom: 15px; }
         .form-group label {
@@ -56,14 +62,23 @@
             font-weight: 600;
             margin-bottom: 5px;
             font-size: 13px;
-            color: #374151;
+            color: #d1d5db;
         }
-        .form-group input {
+        .form-group input, .form-group select, .form-group textarea {
             width: 100%;
             padding: 10px;
-            border: 2px solid #e5e7eb;
+            border: 2px solid #374151;
             border-radius: 6px;
             font-size: 14px;
+            background: #1f2937;
+            color: #e5e7eb;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        .form-group input::placeholder {
+            color: #6b7280;
         }
         .btn {
             padding: 10px 20px;
@@ -72,8 +87,13 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
+            transition: all 0.2s;
         }
-        .btn-primary { background: #667eea; color: white; }
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .btn-primary { background: #3b82f6; color: white; }
         .btn-secondary { background: #6b7280; color: white; }
         .btn-danger { background: #ef4444; color: white; }
         .btn-success { background: #10b981; color: white; }
@@ -86,54 +106,66 @@
         }
         .search-results {
             position: absolute;
-            background: white;
-            border: 2px solid #e5e7eb;
+            background: #1f2937;
+            border: 2px solid #374151;
             border-radius: 6px;
             max-height: 200px;
             overflow-y: auto;
             z-index: 1000;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             width: calc(100% - 4px);
             margin-top: 2px;
         }
         .search-result-item {
             padding: 10px;
             cursor: pointer;
-            border-bottom: 1px solid #f3f4f6;
+            border-bottom: 1px solid #374151;
             display: flex;
             justify-content: space-between;
+            color: #e5e7eb;
         }
-        .search-result-item:hover { background: #f9fafb; }
+        .search-result-item:hover { background: #374151; }
         .summary-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
             color: white;
             padding: 25px;
             border-radius: 8px;
             margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
+        .summary-card h2 { margin: 0; }
         .team-section {
-            background: #f9fafb;
+            background: #1f2937;
             border-radius: 8px;
             margin-bottom: 15px;
-            border: 2px solid #e5e7eb;
+            border: 2px solid #374151;
             overflow: hidden;
         }
         .team-header {
             padding: 20px;
             cursor: pointer;
-            background: white;
+            background: #374151;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            color: #e5e7eb;
+            font-weight: 600;
+            transition: background 0.2s;
         }
-        .team-header:hover { background: #f9fafb; }
+        .team-header:hover { background: #4b5563; }
+        .team-header h3 { margin: 0; color: #e5e7eb; }
         .team-content { padding: 20px; padding-top: 0; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-        th { background: #f9fafb; font-weight: 600; }
-        .counted { background: #d1fae5; }
-        .excluded { background: #fee2e2; }
-        .loading { text-align: center; padding: 40px; color: #6b7280; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #374151; }
+        th { background: #374151; font-weight: 600; color: #e5e7eb; }
+        td { color: #d1d5db; }
+        .counted { background: #1f2937; }
+        .excluded { background: #1f2937; opacity: 0.7; }
+        .loading { text-align: center; padding: 40px; color: #9ca3af; }
     </style>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -146,6 +178,7 @@
             <button class="tab active" onclick="switchTab(0)">Step 1: Input</button>
             <button class="tab" onclick="switchTab(1)">Step 2: Review</button>
             <button class="tab" onclick="switchTab(2)">Step 3: Calculate</button>
+            <button class="tab" onclick="switchTab(3)">How to Use</button>
         </div>
         
         <div class="tab-content active" id="tab0">
@@ -238,10 +271,142 @@
         <div class="tab-content" id="tab2">
             <div id="calcResults"><div class="loading">Complete Steps 1 & 2</div></div>
         </div>
+        
+        <div class="tab-content" id="tab3">
+            <div style="max-width: 900px; margin: 0 auto;">
+                <h2>📖 How to Use This Tool</h2>
+                
+                <div style="background:#1f2937;padding:20px;border-radius:8px;margin-bottom:20px;border-left:4px solid #3b82f6;">
+                    <h3 style="margin-top:0;color:#60a5fa;">Purpose</h3>
+                    <p style="color:#d1d5db;margin:0;">This tool tracks pitcher overages for Fantrax H2H Categories leagues where stats continue to count even after exceeding the weekly limits (Max 7 GS, Max 10 RA). It generates reports for commissioners to manually adjust stats.</p>
+                </div>
+                
+                <div style="background:#1f2937;padding:20px;border-radius:8px;margin-bottom:20px;">
+                    <h3 style="margin-top:0;color:#60a5fa;">Step-by-Step Guide</h3>
+                    
+                    <div style="margin-bottom:20px;">
+                        <h4 style="color:#93c5fd;margin-bottom:10px;">Step 1: Input Pitcher Data</h4>
+                        <ol style="color:#d1d5db;line-height:1.8;">
+                            <li><strong style="color:#e5e7eb;">Set Week Dates:</strong> Select your matchup period start and end dates</li>
+                            <li><strong style="color:#e5e7eb;">Set Limits:</strong> Default is 7 Starts (SP) and 10 Relief (RP) - adjust if needed</li>
+                            <li><strong style="color:#e5e7eb;">Wait for Database:</strong> Green banner appears when MLB pitcher database loads</li>
+                            <li><strong style="color:#e5e7eb;">Add Pitchers:</strong>
+                                <ul style="margin-top:5px;">
+                                    <li><strong>Bulk Paste:</strong> Copy pitcher names from Fantrax (one per line), enter team name and date, click "Add All"</li>
+                                    <li><strong>Manual:</strong> Click "+ Add" button to add one at a time</li>
+                                    <li><strong>Auto-fill:</strong> MLB teams auto-fill when database is loaded</li>
+                                </ul>
+                            </li>
+                            <li><strong style="color:#e5e7eb;">Fetch Games:</strong> Click "Fetch Games →" to retrieve stats from MLB API</li>
+                        </ol>
+                    </div>
+                    
+                    <div style="margin-bottom:20px;">
+                        <h4 style="color:#93c5fd;margin-bottom:10px;">Step 2: Review Chronological Order</h4>
+                        <p style="color:#d1d5db;margin:0 0 10px 0;">Appearances are sorted by actual game time. Check status column:</p>
+                        <ul style="color:#d1d5db;line-height:1.8;">
+                            <li><strong style="color:#10b981;">✓ Counts (3/7 SP):</strong> This appearance counts, it's the 3rd of 7 allowed</li>
+                            <li><strong style="color:#ef4444;">✗ Excluded (8/7 SP):</strong> This appearance exceeds limits and needs removal</li>
+                        </ul>
+                        <p style="color:#9ca3af;margin-top:10px;font-size:13px;">If order looks correct, click "Continue →"</p>
+                    </div>
+                    
+                    <div style="margin-bottom:20px;">
+                        <h4 style="color:#93c5fd;margin-bottom:10px;">Step 3: Review Stats & Export</h4>
+                        <p style="color:#d1d5db;margin:0 0 10px 0;">View the Commissioner Quick View Dashboard:</p>
+                        <ul style="color:#d1d5db;line-height:1.8;">
+                            <li><strong style="color:#10b981;">Green:</strong> Teams with no overages</li>
+                            <li><strong style="color:#ef4444;">Red:</strong> Teams requiring adjustments</li>
+                            <li><strong style="color:#f59e0b;">Orange:</strong> Total excluded appearances</li>
+                        </ul>
+                        <p style="color:#d1d5db;margin:10px 0;">Export Options:</p>
+                        <ul style="color:#d1d5db;line-height:1.8;">
+                            <li><strong style="color:#10b981;">"📊 Export CSV":</strong> For Google Sheets (lightweight, easy sharing)</li>
+                            <li><strong style="color:#3b82f6;">"📗 Export Excel":</strong> For Excel (multi-sheet workbook with formatting)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div style="background:#1f2937;padding:20px;border-radius:8px;margin-bottom:20px;">
+                    <h3 style="margin-top:0;color:#60a5fa;">CSV Report Structure</h3>
+                    
+                    <div style="margin-bottom:15px;">
+                        <h4 style="color:#93c5fd;margin-bottom:8px;">Section 1: Summary by Team</h4>
+                        <p style="color:#d1d5db;margin:0;font-size:14px;">Shows aggregate stats for each team with three columns per category:</p>
+                        <ul style="color:#d1d5db;font-size:14px;line-height:1.6;">
+                            <li><strong>Total (All):</strong> What Fantrax shows (includes excluded apps)</li>
+                            <li><strong>To Remove:</strong> Stats from excluded apps only</li>
+                            <li><strong>Corrected:</strong> What the true total should be</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="margin-bottom:15px;">
+                        <h4 style="color:#93c5fd;margin-bottom:8px;">Section 2: Players Requiring Adjustment</h4>
+                        <p style="color:#d1d5db;margin:0;font-size:14px;">Lists ONLY pitchers with excluded appearances. Shows exactly what to remove per player across all categories (IP, K, QS, ERA, SVH, BB+HBP).</p>
+                    </div>
+                    
+                    <div>
+                        <h4 style="color:#93c5fd;margin-bottom:8px;">Section 3: Detailed Breakdown</h4>
+                        <p style="color:#d1d5db;margin:0;font-size:14px;">Every appearance with game time, type (SP/RP), status (COUNTS/EXCLUDED), and full stats.</p>
+                    </div>
+                </div>
+                
+                <div style="background:#1f2937;padding:20px;border-radius:8px;margin-bottom:20px;">
+                    <h3 style="margin-top:0;color:#60a5fa;">Manual Stat Adjustment Process</h3>
+                    <ol style="color:#d1d5db;line-height:1.8;">
+                        <li>Open exported CSV in Excel or Google Sheets</li>
+                        <li>Go to "Players Requiring Adjustment" section</li>
+                        <li>For each player listed, manually subtract their stats in Fantrax:
+                            <ul style="margin-top:5px;font-size:14px;">
+                                <li>IP (Innings Pitched)</li>
+                                <li>K (Strikeouts)</li>
+                                <li>QS (Quality Starts)</li>
+                                <li>ERA (Earned Run Average) - recalculate based on corrected IP/ER</li>
+                                <li>SVH (Saves + Holds)</li>
+                                <li>BB+HBP (Walks + Hit By Pitch)</li>
+                            </ul>
+                        </li>
+                        <li>Upload CSV to Google Drive for league transparency</li>
+                    </ol>
+                </div>
+                
+                <div style="background:#1f2937;padding:20px;border-radius:8px;margin-bottom:20px;">
+                    <h3 style="margin-top:0;color:#60a5fa;">Tips & Tricks</h3>
+                    <ul style="color:#d1d5db;line-height:1.8;">
+                        <li><strong style="color:#e5e7eb;">Bulk Paste is Fastest:</strong> Copy all pitcher names at once from Fantrax roster page</li>
+                        <li><strong style="color:#e5e7eb;">Check Names with Accents:</strong> Tool handles Suárez, Pérez automatically</li>
+                        <li><strong style="color:#e5e7eb;">N/A Teams:</strong> If MLB team shows "N/A", pitcher isn't in 2025 database - enter team manually</li>
+                        <li><strong style="color:#e5e7eb;">Same-Game Pitchers:</strong> Tool uses appearance order from boxscore for proper chronological sorting</li>
+                        <li><strong style="color:#e5e7eb;">Color Coding in Step 3:</strong>
+                            <ul style="margin-top:5px;">
+                                <li>🟢 Green: All appearances counted</li>
+                                <li>🟠 Orange: Mixed (some counted, some excluded)</li>
+                                <li>🔴 Red: All appearances excluded</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div style="background:#1f2937;padding:20px;border-radius:8px;border-left:4px solid #ef4444;">
+                    <h3 style="margin-top:0;color:#f87171;">Important Notes</h3>
+                    <ul style="color:#d1d5db;line-height:1.8;margin:0;">
+                        <li><strong style="color:#fca5a5;">Database Load Time:</strong> Wait 2-5 seconds for green "MLB pitcher database loaded" banner</li>
+                        <li><strong style="color:#fca5a5;">Past Games Only:</strong> MLB API only has data for games already played - no future dates</li>
+                        <li><strong style="color:#fca5a5;">Manual Adjustment Required:</strong> This tool generates reports - commissioners must manually adjust stats in Fantrax</li>
+                        <li><strong style="color:#fca5a5;">No Hitting Overages Yet:</strong> Currently tracks pitching only</li>
+                    </ul>
+                </div>
+                
+                <div style="background:#1f2937;padding:20px;border-radius:8px;margin-top:20px;text-align:center;">
+                    <p style="color:#9ca3af;margin:0;">Questions? Contact your league administrator</p>
+                    <p style="color:#6b7280;margin:5px 0 0 0;font-size:12px;">Fantrax Pitcher Tracker v4.0.0 - Dark Mode</p>
+                </div>
+            </div>
+        </div>
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v3.0.0
+        v4.0.0
     </div>
     
     <script>
@@ -648,7 +813,104 @@
                 teams[g.fantasyTeam].push(g);
             });
             
-            let html = '<div class="summary-card"><h2>Corrected Totals</h2><button class="btn btn-success" onclick="exportCSV()">📊 Export CSV</button></div>';
+            // Build Quick View Dashboard Data
+            const dashboardData = [];
+            let totalTeamsWithOverages = 0;
+            let totalExcludedApps = 0;
+            
+            Object.keys(teams).sort().forEach(tn => {
+                const apps = teams[tn].sort((a,b) => a.gameTime - b.gameTime);
+                let sp = 0, rp = 0;
+                let spOverages = 0, rpOverages = 0;
+                let excludedIP = 0;
+                const affectedPitchers = new Set();
+                
+                apps.forEach(a => {
+                    if (a.type === 'SP') sp++; else rp++;
+                    const ok = (a.type === 'SP' && sp <= maxS) || (a.type === 'RP' && rp <= maxR);
+                    
+                    if (!ok) {
+                        if (a.type === 'SP') spOverages++;
+                        else rpOverages++;
+                        
+                        totalExcludedApps++;
+                        affectedPitchers.add(a.name);
+                        
+                        const stats = a.stats || {};
+                        excludedIP += parseIP(stats.inningsPitched || 0);
+                    }
+                });
+                
+                if (spOverages > 0 || rpOverages > 0) {
+                    totalTeamsWithOverages++;
+                    dashboardData.push({
+                        team: tn,
+                        spOverages,
+                        rpOverages,
+                        excludedIP,
+                        affectedPitchers: affectedPitchers.size
+                    });
+                }
+            });
+            
+            // Build Dashboard HTML
+            let html = '<div class="summary-card"><h2>Commissioner Quick View</h2></div>';
+            
+            // Traffic Light Summary
+            const totalTeams = Object.keys(teams).length;
+            const teamsNoOverages = totalTeams - totalTeamsWithOverages;
+            
+            html += `<div style="background:#f3f4f6;padding:20px;border-radius:8px;margin-bottom:20px;">
+                <h3 style="margin-top:0;">Weekly Overview</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:15px;margin-top:15px;">
+                    <div style="background:white;padding:15px;border-radius:6px;border-left:4px solid #10b981;">
+                        <div style="font-size:24px;font-weight:bold;color:#10b981;">${teamsNoOverages}</div>
+                        <div style="font-size:13px;color:#6b7280;">Teams - No Overages</div>
+                    </div>
+                    <div style="background:white;padding:15px;border-radius:6px;border-left:4px solid #ef4444;">
+                        <div style="font-size:24px;font-weight:bold;color:#ef4444;">${totalTeamsWithOverages}</div>
+                        <div style="font-size:13px;color:#6b7280;">Teams - With Overages</div>
+                    </div>
+                    <div style="background:white;padding:15px;border-radius:6px;border-left:4px solid #f59e0b;">
+                        <div style="font-size:24px;font-weight:bold;color:#f59e0b;">${totalExcludedApps}</div>
+                        <div style="font-size:13px;color:#6b7280;">Total Excluded Apps</div>
+                    </div>
+                </div>
+            </div>`;
+            
+            // Teams Requiring Adjustments Table
+            if (dashboardData.length > 0) {
+                html += `<div style="background:#fff3cd;border:2px solid #f59e0b;padding:15px;border-radius:8px;margin-bottom:20px;">
+                    <h3 style="margin-top:0;color:#b45309;">⚠️ Teams Requiring Manual Adjustments</h3>
+                    <table style="width:100%;border-collapse:collapse;">
+                        <tr style="background:#f3f4f6;">
+                            <th style="padding:10px;text-align:left;border-bottom:2px solid #d1d5db;">Team</th>
+                            <th style="padding:10px;text-align:center;border-bottom:2px solid #d1d5db;">SP Overages</th>
+                            <th style="padding:10px;text-align:center;border-bottom:2px solid #d1d5db;">RP Overages</th>
+                            <th style="padding:10px;text-align:center;border-bottom:2px solid #d1d5db;">IP to Remove</th>
+                            <th style="padding:10px;text-align:center;border-bottom:2px solid #d1d5db;">Pitchers Affected</th>
+                        </tr>`;
+                
+                dashboardData.forEach(d => {
+                    html += `<tr style="border-bottom:1px solid #e5e7eb;">
+                        <td style="padding:10px;font-weight:600;">${d.team}</td>
+                        <td style="padding:10px;text-align:center;">${d.spOverages > 0 ? `<span style="color:#ef4444;">${d.spOverages}</span>` : '-'}</td>
+                        <td style="padding:10px;text-align:center;">${d.rpOverages > 0 ? `<span style="color:#ef4444;">${d.rpOverages}</span>` : '-'}</td>
+                        <td style="padding:10px;text-align:center;font-weight:600;">${d.excludedIP.toFixed(1)}</td>
+                        <td style="padding:10px;text-align:center;">${d.affectedPitchers}</td>
+                    </tr>`;
+                });
+                
+                html += `</table></div>`;
+            } else {
+                html += `<div style="background:#d1fae5;border:2px solid #10b981;padding:15px;border-radius:8px;margin-bottom:20px;text-align:center;">
+                    <h3 style="margin:0;color:#065f46;">✅ No Overages This Week!</h3>
+                    <p style="margin:5px 0 0 0;color:#047857;">All teams stayed within limits.</p>
+                </div>`;
+            }
+            
+            html += '<div class="summary-card"><h2>Detailed Stats by Team</h2><div style="display:flex;gap:10px;"><button class="btn btn-success" onclick="exportCSV()">📊 Export CSV</button><button class="btn btn-primary" onclick="exportExcel()">📗 Export Excel</button></div></div>';
+            
             Object.keys(teams).sort().forEach((tn,i) => {
                 const apps = teams[tn].sort((a,b) => a.gameTime - b.gameTime);
                 let sp = 0, rp = 0, total = 0;
@@ -856,6 +1118,77 @@
                 csv += `"${tn}",${allIP.toFixed(1)},${removedIP.toFixed(1)},${countedIP.toFixed(1)},${allK},${removedK},${countedK},${allQS},${removedQS},${countedQS},${allSVH},${removedSVH},${countedSVH},${allBBHBP},${removedBBHBP},${countedBBHBP},${allERA.toFixed(2)},${countedERA.toFixed(2)}\n`;
             });
             
+            // NEW SECTION: Players Requiring Manual Adjustment (only excluded appearances)
+            csv += '\n\nPlayers Requiring Manual Adjustment\n';
+            csv += 'Fantasy Team,Pitcher,# Excluded Apps,IP to Remove,ER to Remove,K to Remove,BB to Remove,HB to Remove,SV to Remove,HLD to Remove,QS to Remove,SVH to Remove,BB+HBP to Remove,ERA of Excluded\n';
+            
+            // Internal check: Build player-level exclusions
+            const playerExclusions = {};
+            
+            Object.keys(teams).sort().forEach(tn => {
+                const apps = teams[tn].sort((a,b) => a.gameTime - b.gameTime);
+                let sp = 0, rp = 0;
+                
+                apps.forEach(a => {
+                    if (a.type === 'SP') sp++; else rp++;
+                    const ok = (a.type === 'SP' && sp <= maxS) || (a.type === 'RP' && rp <= maxR);
+                    
+                    // Only track EXCLUDED appearances
+                    if (!ok) {
+                        const playerKey = `${tn}|||${a.name}`; // Use delimiter to prevent collision
+                        
+                        if (!playerExclusions[playerKey]) {
+                            playerExclusions[playerKey] = {
+                                team: tn,
+                                name: a.name,
+                                count: 0,
+                                ip: 0, er: 0, k: 0, bb: 0, hb: 0, sv: 0, hld: 0, qs: 0
+                            };
+                        }
+                        
+                        const stats = a.stats || {};
+                        const ip = parseIP(stats.inningsPitched || 0);
+                        const er = parseInt(stats.earnedRuns || 0);
+                        const k = parseInt(stats.strikeOuts || 0);
+                        const bb = parseInt(stats.baseOnBalls || 0);
+                        const hb = parseInt(stats.hitBatsmen || 0);
+                        const sv = parseInt(stats.saves || 0);
+                        const hld = parseInt(stats.holds || 0);
+                        const qs = (ip >= 6 && er <= 3) ? 1 : 0;
+                        
+                        playerExclusions[playerKey].count++;
+                        playerExclusions[playerKey].ip += ip;
+                        playerExclusions[playerKey].er += er;
+                        playerExclusions[playerKey].k += k;
+                        playerExclusions[playerKey].bb += bb;
+                        playerExclusions[playerKey].hb += hb;
+                        playerExclusions[playerKey].sv += sv;
+                        playerExclusions[playerKey].hld += hld;
+                        playerExclusions[playerKey].qs += qs;
+                    }
+                });
+            });
+            
+            // Internal check: Verify all excluded stats are accounted for
+            let totalExcludedIP = 0;
+            
+            // Write player exclusions to CSV
+            Object.keys(playerExclusions).sort().forEach(key => {
+                const p = playerExclusions[key];
+                const svh = p.sv + p.hld;
+                const bbhbp = p.bb + p.hb;
+                const era = p.ip > 0 ? (p.er * 9) / p.ip : 0;
+                
+                totalExcludedIP += p.ip; // Track for validation
+                
+                csv += `"${p.team}","${p.name}",${p.count},${p.ip.toFixed(1)},${p.er},${p.k},${p.bb},${p.hb},${p.sv},${p.hld},${p.qs},${svh},${bbhbp},${era.toFixed(2)}\n`;
+            });
+            
+            // If no exclusions, add a note
+            if (Object.keys(playerExclusions).length === 0) {
+                csv += 'No players with excluded appearances this week\n';
+            }
+            
             // Now add detailed breakdown
             csv += '\n\nDetailed Breakdown by Appearance\n';
             csv += 'Fantasy Team,Pitcher,MLB Team,Game Date,Game Time (ET),Type,Status,IP,ER,K,BB,HB,SV,HLD,QS,SVH,BB+HBP,ERA\n';
@@ -895,6 +1228,186 @@
             a.href = URL.createObjectURL(blob);
             a.download = `Pitcher_Overages_${ws}_to_${we}.csv`;
             a.click();
+        }
+        
+        function exportExcel() {
+            // Internal check: Verify XLSX library is loaded
+            if (typeof XLSX === 'undefined') {
+                alert('Excel export library not loaded. Please refresh the page and try again.');
+                return;
+            }
+            
+            const ws_date = document.getElementById('weekStart').value;
+            const we_date = document.getElementById('weekEnd').value;
+            const maxS = parseInt(document.getElementById('maxStarts').value);
+            const maxR = parseInt(document.getElementById('maxRP').value);
+            
+            const teams = {};
+            gameData.forEach(g => {
+                if (!teams[g.fantasyTeam]) teams[g.fantasyTeam] = [];
+                teams[g.fantasyTeam].push(g);
+            });
+            
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            
+            // SHEET 1: Summary by Team
+            const summaryData = [];
+            summaryData.push(['Matchup Period', 'Max Starts', 'Max Relief']);
+            summaryData.push([`${ws_date} to ${we_date}`, maxS, maxR]);
+            summaryData.push([]);
+            summaryData.push(['Summary by Team - H2H CATEGORIES']);
+            summaryData.push(['Fantasy Team', 'Total IP (All)', 'IP to Remove', 'Corrected IP', 'Total K (All)', 'K to Remove', 'Corrected K', 'Total QS (All)', 'QS to Remove', 'Corrected QS', 'Total SVH (All)', 'SVH to Remove', 'Corrected SVH', 'Total BB+HBP (All)', 'BB+HBP to Remove', 'Corrected BB+HBP', 'Weighted ERA (All)', 'ERA (Counted Only)']);
+            
+            Object.keys(teams).sort().forEach(tn => {
+                const apps = teams[tn].sort((a,b) => a.gameTime - b.gameTime);
+                let sp = 0, rp = 0;
+                let allIP=0, allER=0, allK=0, allBB=0, allHB=0, allSV=0, allHLD=0, allQS=0;
+                let countedIP=0, countedER=0, countedK=0, countedBB=0, countedHB=0, countedSV=0, countedHLD=0, countedQS=0;
+                let removedIP=0, removedER=0, removedK=0, removedBB=0, removedHB=0, removedSV=0, removedHLD=0, removedQS=0;
+                
+                apps.forEach(a => {
+                    if (a.type === 'SP') sp++; else rp++;
+                    const ok = (a.type === 'SP' && sp <= maxS) || (a.type === 'RP' && rp <= maxR);
+                    
+                    const stats = a.stats || {};
+                    const ip = parseIP(stats.inningsPitched || 0);
+                    const er = parseInt(stats.earnedRuns || 0);
+                    const k = parseInt(stats.strikeOuts || 0);
+                    const bb = parseInt(stats.baseOnBalls || 0);
+                    const hb = parseInt(stats.hitBatsmen || 0);
+                    const sv = parseInt(stats.saves || 0);
+                    const hld = parseInt(stats.holds || 0);
+                    const qs = (ip >= 6 && er <= 3) ? 1 : 0;
+                    
+                    allIP += ip; allER += er; allK += k; allBB += bb; allHB += hb; allSV += sv; allHLD += hld; allQS += qs;
+                    
+                    if (ok) {
+                        countedIP += ip; countedER += er; countedK += k; countedBB += bb; countedHB += hb; countedSV += sv; countedHLD += hld; countedQS += qs;
+                    } else {
+                        removedIP += ip; removedER += er; removedK += k; removedBB += bb; removedHB += hb; removedSV += sv; removedHLD += hld; removedQS += qs;
+                    }
+                });
+                
+                const allSVH = allSV + allHLD;
+                const allBBHBP = allBB + allHB;
+                const countedSVH = countedSV + countedHLD;
+                const countedBBHBP = countedBB + countedHB;
+                const removedSVH = removedSV + removedHLD;
+                const removedBBHBP = removedBB + removedHB;
+                const allERA = allIP > 0 ? (allER * 9) / allIP : 0;
+                const countedERA = countedIP > 0 ? (countedER * 9) / countedIP : 0;
+                
+                summaryData.push([tn, allIP, removedIP, countedIP, allK, removedK, countedK, allQS, removedQS, countedQS, allSVH, removedSVH, countedSVH, allBBHBP, removedBBHBP, countedBBHBP, allERA, countedERA]);
+            });
+            
+            const ws_summary = XLSX.utils.aoa_to_sheet(summaryData);
+            XLSX.utils.book_append_sheet(wb, ws_summary, 'Summary');
+            
+            // SHEET 2: Players Requiring Adjustment
+            const playersData = [];
+            playersData.push(['Players Requiring Manual Adjustment']);
+            playersData.push(['Fantasy Team', 'Pitcher', '# Excluded Apps', 'IP to Remove', 'ER to Remove', 'K to Remove', 'BB to Remove', 'HB to Remove', 'SV to Remove', 'HLD to Remove', 'QS to Remove', 'SVH to Remove', 'BB+HBP to Remove', 'ERA of Excluded']);
+            
+            const playerExclusions = {};
+            Object.keys(teams).sort().forEach(tn => {
+                const apps = teams[tn].sort((a,b) => a.gameTime - b.gameTime);
+                let sp = 0, rp = 0;
+                
+                apps.forEach(a => {
+                    if (a.type === 'SP') sp++; else rp++;
+                    const ok = (a.type === 'SP' && sp <= maxS) || (a.type === 'RP' && rp <= maxR);
+                    
+                    if (!ok) {
+                        const playerKey = `${tn}|||${a.name}`;
+                        
+                        if (!playerExclusions[playerKey]) {
+                            playerExclusions[playerKey] = {
+                                team: tn, name: a.name, count: 0,
+                                ip: 0, er: 0, k: 0, bb: 0, hb: 0, sv: 0, hld: 0, qs: 0
+                            };
+                        }
+                        
+                        const stats = a.stats || {};
+                        const ip = parseIP(stats.inningsPitched || 0);
+                        const er = parseInt(stats.earnedRuns || 0);
+                        const k = parseInt(stats.strikeOuts || 0);
+                        const bb = parseInt(stats.baseOnBalls || 0);
+                        const hb = parseInt(stats.hitBatsmen || 0);
+                        const sv = parseInt(stats.saves || 0);
+                        const hld = parseInt(stats.holds || 0);
+                        const qs = (ip >= 6 && er <= 3) ? 1 : 0;
+                        
+                        playerExclusions[playerKey].count++;
+                        playerExclusions[playerKey].ip += ip;
+                        playerExclusions[playerKey].er += er;
+                        playerExclusions[playerKey].k += k;
+                        playerExclusions[playerKey].bb += bb;
+                        playerExclusions[playerKey].hb += hb;
+                        playerExclusions[playerKey].sv += sv;
+                        playerExclusions[playerKey].hld += hld;
+                        playerExclusions[playerKey].qs += qs;
+                    }
+                });
+            });
+            
+            Object.keys(playerExclusions).sort().forEach(key => {
+                const p = playerExclusions[key];
+                const svh = p.sv + p.hld;
+                const bbhbp = p.bb + p.hb;
+                const era = p.ip > 0 ? (p.er * 9) / p.ip : 0;
+                
+                playersData.push([p.team, p.name, p.count, p.ip, p.er, p.k, p.bb, p.hb, p.sv, p.hld, p.qs, svh, bbhbp, era]);
+            });
+            
+            if (Object.keys(playerExclusions).length === 0) {
+                playersData.push(['No players with excluded appearances this week']);
+            }
+            
+            const ws_players = XLSX.utils.aoa_to_sheet(playersData);
+            XLSX.utils.book_append_sheet(wb, ws_players, 'Players to Adjust');
+            
+            // SHEET 3: Detailed Breakdown
+            const detailData = [];
+            detailData.push(['Detailed Breakdown by Appearance']);
+            detailData.push(['Fantasy Team', 'Pitcher', 'MLB Team', 'Game Date', 'Game Time (ET)', 'Type', 'Status', 'IP', 'ER', 'K', 'BB', 'HB', 'SV', 'HLD', 'QS', 'SVH', 'BB+HBP', 'ERA']);
+            
+            Object.keys(teams).sort().forEach(tn => {
+                const apps = teams[tn].sort((a,b) => a.gameTime - b.gameTime);
+                let sp = 0, rp = 0;
+                
+                apps.forEach(a => {
+                    if (a.type === 'SP') sp++; else rp++;
+                    const ok = (a.type === 'SP' && sp <= maxS) || (a.type === 'RP' && rp <= maxR);
+                    
+                    const stats = a.stats || {};
+                    const ip = parseIP(stats.inningsPitched || 0);
+                    const er = parseInt(stats.earnedRuns || 0);
+                    const k = parseInt(stats.strikeOuts || 0);
+                    const bb = parseInt(stats.baseOnBalls || 0);
+                    const hb = parseInt(stats.hitBatsmen || 0);
+                    const sv = parseInt(stats.saves || 0);
+                    const hld = parseInt(stats.holds || 0);
+                    const qs = (ip >= 6 && er <= 3) ? 1 : 0;
+                    const svh = sv + hld;
+                    const bbhbp = bb + hb;
+                    const era = ip > 0 ? (er * 9) / ip : 0;
+                    
+                    const date = a.gameTime.toLocaleDateString('en-US', {month: 'numeric', day: 'numeric', year: 'numeric'});
+                    const time = a.gameTime.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit', hour12: true});
+                    
+                    detailData.push([tn, a.name, a.mlbTeam, date, time, a.type, ok?'COUNTS':'EXCLUDED', ip, er, k, bb, hb, sv, hld, qs, svh, bbhbp, era]);
+                });
+            });
+            
+            const ws_detail = XLSX.utils.aoa_to_sheet(detailData);
+            XLSX.utils.book_append_sheet(wb, ws_detail, 'Detailed Breakdown');
+            
+            // Internal check: Verify all sheets added
+            console.log('Excel workbook sheets:', wb.SheetNames);
+            
+            // Export with proper filename
+            XLSX.writeFile(wb, `Pitcher_Overages_${ws_date}_to_${we_date}.xlsx`);
         }
         
         function switchTab(i) {
