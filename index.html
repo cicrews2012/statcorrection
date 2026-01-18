@@ -183,6 +183,26 @@
         
         <div class="tab-content active" id="tab0">
             <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <button class="btn btn-danger" onclick="resetAll()">🔄 Reset All</button>
+                <div id="loadingStatus" style="padding: 10px; border-radius: 6px; display: none;"></div>
+            </div>
+            
+            <!-- Mode Selector -->
+            <div style="background:#1f2937;padding:20px;border-radius:8px;margin-bottom:20px;border:2px solid #3b82f6;">
+                <h3 style="color:#60a5fa;margin:0 0 15px 0;">Select Import Mode</h3>
+                <div style="display:flex;gap:15px;">
+                    <button class="btn btn-primary" onclick="switchMode('manual')" id="modeManual" style="flex:1;">
+                        📝 Manual Entry (Current)
+                    </button>
+                    <button class="btn btn-secondary" onclick="switchMode('roster')" id="modeRoster" style="flex:1;">
+                        📋 League Roster Import (NEW)
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Manual Entry Mode -->
+            <div id="manualMode" style="display:block;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
                 <h2>Week Setup</h2>
                 <button class="btn btn-secondary" onclick="resetAll()">🔄 Clear</button>
             </div>
@@ -262,6 +282,52 @@
             
             <button class="btn btn-secondary" onclick="addRow()">+ Add</button>
             <button class="btn btn-primary" onclick="fetchGames()" style="float: right;">Fetch Games →</button>
+            </div>
+            
+            <!-- League Roster Import Mode -->
+            <div id="rosterMode" style="display:none;">
+                <div style="background:#1f2937;padding:20px;border-radius:8px;margin-bottom:20px;">
+                    <h3 style="color:#e5e7eb;margin:0 0 15px 0;">📋 League Roster Import</h3>
+                    <p style="color:#9ca3af;margin-bottom:15px;">Paste your entire league's rosters below. The tool will find all pitchers who pitched during your week, then you can check which ones were in your lineup.</p>
+                    
+                    <div class="form-group">
+                        <label>Week Dates</label>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                            <input type="date" id="rosterWeekStart" class="form-group input">
+                            <input type="date" id="rosterWeekEnd" class="form-group input">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Paste League Rosters (Format: TeamName,PlayerName - one per line)</label>
+                        <textarea id="rosterInput" style="width:100%;height:200px;padding:10px;border:2px solid #374151;border-radius:6px;background:#111827;color:#e5e7eb;font-family:monospace;font-size:13px;" placeholder="Example:
+Christian,Gerrit Cole
+Christian,Trevor Rogers
+Christian,Mason Miller
+Brisco,Max Fried
+Brisco,Ranger Suarez
+..."></textarea>
+                        <div style="font-size:12px;color:#9ca3af;margin-top:5px;">
+                            💡 Tip: Export from Excel/Sheets with Team,Player columns and paste here
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="processLeagueRoster()" style="width:100%;padding:15px;font-size:16px;">
+                        🔍 Find All Pitchers Who Pitched This Week
+                    </button>
+                </div>
+                
+                <div id="rosterResults" style="display:none;">
+                    <div style="background:#1f2937;padding:20px;border-radius:8px;margin-bottom:20px;">
+                        <h3 style="color:#e5e7eb;margin:0 0 10px 0;">✅ Pitchers Found</h3>
+                        <p style="color:#9ca3af;margin-bottom:15px;">Check the boxes for pitchers who were <strong>IN YOUR LINEUP</strong> (not benched)</p>
+                        <div id="rosterCheckboxes"></div>
+                        <button class="btn btn-success" onclick="processSelectedPitchers()" style="width:100%;padding:15px;margin-top:20px;font-size:16px;">
+                            Continue with Selected Pitchers →
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <div class="tab-content" id="tab1">
@@ -406,7 +472,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v4.2.0
+        v4.3.0
     </div>
     
     <script>
@@ -418,6 +484,200 @@
             return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         }
         let gameData = [];
+        let rosterModeData = []; // Store found pitchers for checkbox selection
+        let currentMode = 'manual'; // 'manual' or 'roster'
+        
+        function switchMode(mode) {
+            currentMode = mode;
+            if (mode === 'manual') {
+                document.getElementById('manualMode').style.display = 'block';
+                document.getElementById('rosterMode').style.display = 'none';
+                document.getElementById('modeManual').classList.remove('btn-secondary');
+                document.getElementById('modeManual').classList.add('btn-primary');
+                document.getElementById('modeRoster').classList.remove('btn-primary');
+                document.getElementById('modeRoster').classList.add('btn-secondary');
+            } else {
+                document.getElementById('manualMode').style.display = 'none';
+                document.getElementById('rosterMode').style.display = 'block';
+                document.getElementById('modeManual').classList.remove('btn-primary');
+                document.getElementById('modeManual').classList.add('btn-secondary');
+                document.getElementById('modeRoster').classList.remove('btn-secondary');
+                document.getElementById('modeRoster').classList.add('btn-primary');
+            }
+        }
+        
+        async function processLeagueRoster() {
+            const weekStart = document.getElementById('rosterWeekStart').value;
+            const weekEnd = document.getElementById('rosterWeekEnd').value;
+            const rosterText = document.getElementById('rosterInput').value.trim();
+            
+            if (!weekStart || !weekEnd) {
+                alert('Please select week dates');
+                return;
+            }
+            
+            if (!rosterText) {
+                alert('Please paste league rosters');
+                return;
+            }
+            
+            // Parse roster input
+            const lines = rosterText.split('\n').filter(l => l.trim());
+            const roster = [];
+            
+            lines.forEach(line => {
+                const parts = line.split(',').map(p => p.trim());
+                if (parts.length >= 2) {
+                    roster.push({ team: parts[0], player: parts[1] });
+                }
+            });
+            
+            if (roster.length === 0) {
+                alert('No valid rosters found. Use format: TeamName,PlayerName');
+                return;
+            }
+            
+            // Show loading
+            alert(`Processing ${roster.length} players... This may take a minute.`);
+            
+            // Find which pitchers pitched during the week
+            rosterModeData = [];
+            const startDate = new Date(weekStart);
+            const endDate = new Date(weekEnd);
+            endDate.setHours(23, 59, 59);
+            
+            for (const player of roster) {
+                try {
+                    // Search for player in MLB database
+                    const searchResults = mlbPitchers.filter(p => 
+                        removeAccents(p.fullName.toLowerCase()).includes(removeAccents(player.player.toLowerCase()))
+                    );
+                    
+                    if (searchResults.length === 0) continue;
+                    
+                    const mlbPlayer = searchResults[0];
+                    
+                    // Check if they pitched during the week
+                    const gamesUrl = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=${weekStart}&endDate=${weekEnd}&teamId=${mlbPlayer.currentTeam.id}&hydrate=boxscore`;
+                    const gamesResp = await fetch(gamesUrl);
+                    const gamesData = await gamesResp.json();
+                    
+                    if (gamesData.dates && gamesData.dates.length > 0) {
+                        for (const dateEntry of gamesData.dates) {
+                            for (const game of dateEntry.games) {
+                                // Check if player pitched in this game
+                                const boxscoreUrl = `https://statsapi.mlb.com/api/v1/game/${game.gamePk}/boxscore`;
+                                const boxResp = await fetch(boxscoreUrl);
+                                const boxData = await boxResp.json();
+                                
+                                // Check both teams
+                                const teams = ['home', 'away'];
+                                for (const side of teams) {
+                                    const teamData = boxData.teams[side];
+                                    if (teamData.team.id === mlbPlayer.currentTeam.id) {
+                                        const pitcher = Object.values(teamData.players).find(p => 
+                                            p.person && p.person.id === mlbPlayer.id && p.stats && p.stats.pitching
+                                        );
+                                        
+                                        if (pitcher) {
+                                            const isStart = teamData.pitchers && teamData.pitchers[0] == pitcher.person.id;
+                                            const pitcherOrder = teamData.pitchers ? teamData.pitchers.indexOf(pitcher.person.id) : 0;
+                                            
+                                            let gameTime = new Date(game.gameDate);
+                                            if (boxData.gameInfo && boxData.gameInfo.firstPitch) {
+                                                gameTime = new Date(boxData.gameInfo.firstPitch);
+                                            }
+                                            gameTime = new Date(gameTime.getTime() + (pitcherOrder * 1000));
+                                            
+                                            rosterModeData.push({
+                                                fantasyTeam: player.team,
+                                                name: pitcher.person.fullName,
+                                                playerId: pitcher.person.id,
+                                                mlbTeam: mlbPlayer.currentTeam.abbreviation,
+                                                gameDate: game.gameDate,
+                                                gameTime: gameTime,
+                                                type: isStart ? 'SP' : 'RP',
+                                                stats: pitcher.stats.pitching
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error processing', player.player, e);
+                }
+            }
+            
+            // Display results with checkboxes
+            displayRosterResults();
+        }
+        
+        function displayRosterResults() {
+            if (rosterModeData.length === 0) {
+                alert('No pitchers found who pitched during this week. Check your dates and roster.');
+                return;
+            }
+            
+            // Group by team
+            const byTeam = {};
+            rosterModeData.forEach(p => {
+                if (!byTeam[p.fantasyTeam]) byTeam[p.fantasyTeam] = [];
+                byTeam[p.fantasyTeam].push(p);
+            });
+            
+            let html = '';
+            Object.keys(byTeam).sort().forEach((team, teamIdx) => {
+                html += `<div style="background:#111827;padding:15px;border-radius:6px;margin-bottom:15px;border-left:4px solid #3b82f6;">
+                    <h4 style="color:#60a5fa;margin:0 0 10px 0;">${team}</h4>`;
+                
+                byTeam[team].forEach((p, idx) => {
+                    const id = `check_${teamIdx}_${idx}`;
+                    const date = new Date(p.gameDate).toLocaleDateString();
+                    html += `<div style="padding:8px;margin:5px 0;background:#1f2937;border-radius:4px;display:flex;align-items:center;gap:10px;">
+                        <input type="checkbox" id="${id}" style="width:18px;height:18px;cursor:pointer;">
+                        <label for="${id}" style="color:#e5e7eb;cursor:pointer;flex:1;display:flex;justify-content:space-between;">
+                            <span><strong>${p.name}</strong> (${p.type})</span>
+                            <span style="color:#9ca3af;">${date}</span>
+                        </label>
+                    </div>`;
+                });
+                
+                html += `</div>`;
+            });
+            
+            document.getElementById('rosterCheckboxes').innerHTML = html;
+            document.getElementById('rosterResults').style.display = 'block';
+        }
+        
+        function processSelectedPitchers() {
+            // Collect checked pitchers
+            const selected = [];
+            const checkboxes = document.querySelectorAll('#rosterCheckboxes input[type="checkbox"]');
+            
+            checkboxes.forEach((cb, idx) => {
+                if (cb.checked) {
+                    selected.push(rosterModeData[idx]);
+                }
+            });
+            
+            if (selected.length === 0) {
+                alert('Please select at least one pitcher who was in your lineup');
+                return;
+            }
+            
+            // Set gameData to selected pitchers
+            gameData = selected;
+            
+            // Copy week dates to main form
+            document.getElementById('weekStart').value = document.getElementById('rosterWeekStart').value;
+            document.getElementById('weekEnd').value = document.getElementById('rosterWeekEnd').value;
+            
+            // Switch to Step 2
+            switchTab(1);
+            displayReview();
+        }
         
         window.onload = function() {
             // Set specific test week
