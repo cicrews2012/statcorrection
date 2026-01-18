@@ -287,8 +287,16 @@
             <!-- League Roster Import Mode -->
             <div id="rosterMode" style="display:none;">
                 <div style="background:#1f2937;padding:20px;border-radius:8px;margin-bottom:20px;">
-                    <h3 style="color:#e5e7eb;margin:0 0 15px 0;">📋 League Roster Import</h3>
-                    <p style="color:#9ca3af;margin-bottom:15px;">Paste your entire league's rosters below. The tool will find all pitchers who pitched during your week, then you can check which ones were in your lineup.</p>
+                    <h3 style="color:#e5e7eb;margin:0 0 15px 0;">📋 Fantrax League Roster Import</h3>
+                    <p style="color:#9ca3af;margin-bottom:15px;">Upload your Fantrax league export CSV and the tool will automatically find all pitchers who pitched during your week.</p>
+                    
+                    <div class="form-group">
+                        <label>Upload Fantrax CSV Export</label>
+                        <input type="file" id="fantraxFile" accept=".csv" style="width:100%;padding:10px;border:2px solid #374151;border-radius:6px;background:#111827;color:#e5e7eb;cursor:pointer;">
+                        <div style="font-size:12px;color:#9ca3af;margin-top:5px;">
+                            💡 Export from Fantrax: Players > Export > Download CSV
+                        </div>
+                    </div>
                     
                     <div class="form-group">
                         <label>Week Dates</label>
@@ -298,21 +306,7 @@
                         </div>
                     </div>
                     
-                    <div class="form-group">
-                        <label>Paste League Rosters (Format: TeamName,PlayerName - one per line)</label>
-                        <textarea id="rosterInput" style="width:100%;height:200px;padding:10px;border:2px solid #374151;border-radius:6px;background:#111827;color:#e5e7eb;font-family:monospace;font-size:13px;" placeholder="Example:
-Christian,Gerrit Cole
-Christian,Trevor Rogers
-Christian,Mason Miller
-Brisco,Max Fried
-Brisco,Ranger Suarez
-..."></textarea>
-                        <div style="font-size:12px;color:#9ca3af;margin-top:5px;">
-                            💡 Tip: Export from Excel/Sheets with Team,Player columns and paste here
-                        </div>
-                    </div>
-                    
-                    <button class="btn btn-primary" onclick="processLeagueRoster()" style="width:100%;padding:15px;font-size:16px;">
+                    <button class="btn btn-primary" onclick="processFantraxCSV()" style="width:100%;padding:15px;font-size:16px;">
                         🔍 Find All Pitchers Who Pitched This Week
                     </button>
                 </div>
@@ -472,7 +466,7 @@ Brisco,Ranger Suarez
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v4.3.0
+        v4.4.0
     </div>
     
     <script>
@@ -506,39 +500,55 @@ Brisco,Ranger Suarez
             }
         }
         
-        async function processLeagueRoster() {
+        async function processFantraxCSV() {
             const weekStart = document.getElementById('rosterWeekStart').value;
             const weekEnd = document.getElementById('rosterWeekEnd').value;
-            const rosterText = document.getElementById('rosterInput').value.trim();
+            const fileInput = document.getElementById('fantraxFile');
             
             if (!weekStart || !weekEnd) {
                 alert('Please select week dates');
                 return;
             }
             
-            if (!rosterText) {
-                alert('Please paste league rosters');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('Please upload a Fantrax CSV file');
                 return;
             }
             
-            // Parse roster input
-            const lines = rosterText.split('\n').filter(l => l.trim());
+            const file = fileInput.files[0];
+            const text = await file.text();
+            
+            // Parse CSV
+            const lines = text.split('\n');
             const roster = [];
             
-            lines.forEach(line => {
-                const parts = line.split(',').map(p => p.trim());
-                if (parts.length >= 2) {
-                    roster.push({ team: parts[0], player: parts[1] });
+            // Skip header row, parse data
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                // Parse CSV (handle quoted fields)
+                const match = line.match(/"([^"]*?)","([^"]*?)","([^"]*?)","([^"]*?)"/);
+                if (match) {
+                    const player = match[2]; // Player name
+                    const team = match[3];   // Team (Status column in Fantrax)
+                    const position = match[4]; // Position
+                    
+                    // Only include pitchers (SP, RP, or P)
+                    if (position.includes('SP') || position.includes('RP') || position === 'P') {
+                        roster.push({ team: team, player: player });
+                    }
                 }
-            });
+            }
             
             if (roster.length === 0) {
-                alert('No valid rosters found. Use format: TeamName,PlayerName');
+                alert('No pitchers found in CSV. Make sure you uploaded the Fantrax export.');
                 return;
             }
             
-            // Show loading
-            alert(`Processing ${roster.length} players... This may take a minute.`);
+            // Show loading message
+            const loadingMsg = `Processing ${roster.length} pitchers... This will take 1-2 minutes.`;
+            if (!confirm(loadingMsg + '\n\nClick OK to start.')) return;
             
             // Find which pitchers pitched during the week
             rosterModeData = [];
@@ -546,7 +556,13 @@ Brisco,Ranger Suarez
             const endDate = new Date(weekEnd);
             endDate.setHours(23, 59, 59);
             
+            let processed = 0;
             for (const player of roster) {
+                processed++;
+                if (processed % 10 === 0) {
+                    console.log(`Processing ${processed}/${roster.length}...`);
+                }
+                
                 try {
                     // Search for player in MLB database
                     const searchResults = mlbPitchers.filter(p => 
@@ -609,6 +625,8 @@ Brisco,Ranger Suarez
                     console.error('Error processing', player.player, e);
                 }
             }
+            
+            console.log(`Found ${rosterModeData.length} pitcher appearances`);
             
             // Display results with checkboxes
             displayRosterResults();
