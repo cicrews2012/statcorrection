@@ -589,7 +589,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v5.3.7 - Data Index Fixed
+        v5.4.0 - Sort by Date + FA Excluded
     </div>
     
     <script>
@@ -1189,28 +1189,54 @@
                 p.originalIndex = i;
             });
             
-            // Group by team
-            const byTeam = {};
-            rosterModeData.forEach(p => {
-                if (!byTeam[p.fantasyTeam]) byTeam[p.fantasyTeam] = [];
-                byTeam[p.fantasyTeam].push(p);
+            // Sort ALL pitchers by date first
+            const sortedPitchers = [...rosterModeData].sort((a, b) => 
+                new Date(a.gameDate) - new Date(b.gameDate)
+            );
+            
+            // Group by date
+            const byDate = {};
+            sortedPitchers.forEach(p => {
+                const dateKey = new Date(p.gameDate).toLocaleDateString();
+                if (!byDate[dateKey]) byDate[dateKey] = [];
+                byDate[dateKey].push(p);
             });
             
             let html = '';
-            Object.keys(byTeam).sort().forEach((team, teamIdx) => {
-                html += `<div style="background:#2a3f5f;padding:15px;border-radius:6px;margin-bottom:15px;border-left:4px solid #EAAA00;">
-                    <h4 style="color:#EAAA00;margin:0 0 10px 0;">${team}</h4>`;
+            Object.keys(byDate).sort((a, b) => new Date(a) - new Date(b)).forEach((date, dateIdx) => {
+                html += `<div style="background:#2a3f5f;padding:15px;border-radius:8px;margin-bottom:15px;border-left:4px solid #EAAA00;">
+                    <h4 style="color:#EAAA00;margin:0 0 10px 0;">📅 ${date}</h4>`;
                 
-                byTeam[team].forEach((p, idx) => {
-                    const id = `check_${teamIdx}_${idx}`;
-                    const date = new Date(p.gameDate).toLocaleDateString();
-                    html += `<div style="padding:8px;margin:5px 0;background:#13274F;border-radius:4px;display:flex;align-items:center;gap:10px;">
-                        <input type="checkbox" id="${id}" data-index="${p.originalIndex}" style="width:18px;height:18px;cursor:pointer;">
-                        <label for="${id}" style="color:#e5e7eb;cursor:pointer;flex:1;display:flex;justify-content:space-between;">
-                            <span><strong>${p.name}</strong> (${p.type})</span>
-                            <span style="color:#9ca3af;">${date}</span>
-                        </label>
-                    </div>`;
+                // Group by team within this date
+                const pitchersByTeam = {};
+                byDate[date].forEach(p => {
+                    if (!pitchersByTeam[p.fantasyTeam]) pitchersByTeam[p.fantasyTeam] = [];
+                    pitchersByTeam[p.fantasyTeam].push(p);
+                });
+                
+                // Sort teams: FA last, others alphabetically
+                const teams = Object.keys(pitchersByTeam).sort((a, b) => {
+                    if (a === 'FA') return 1;
+                    if (b === 'FA') return -1;
+                    return a.localeCompare(b);
+                });
+                
+                teams.forEach(team => {
+                    const isFreeAgent = team === 'FA';
+                    html += `<div style="background:${isFreeAgent ? '#1a1a1a' : '#13274F'};padding:10px;border-radius:4px;margin-bottom:8px;${isFreeAgent ? 'opacity:0.6;' : ''}">
+                        <div style="color:${isFreeAgent ? '#666' : '#CE1141'};font-weight:600;font-size:13px;margin-bottom:5px;">${team}${isFreeAgent ? ' (Free Agents - Not Counted)' : ''}</div>`;
+                    
+                    pitchersByTeam[team].forEach((p, idx) => {
+                        const id = `check_${dateIdx}_${team}_${idx}`;
+                        html += `<div style="padding:6px;margin:3px 0;display:flex;align-items:center;gap:10px;">
+                            <input type="checkbox" id="${id}" data-index="${p.originalIndex}" data-is-fa="${isFreeAgent}" style="width:18px;height:18px;cursor:pointer;">
+                            <label for="${id}" style="color:${isFreeAgent ? '#888' : '#e5e7eb'};cursor:pointer;flex:1;font-size:14px;">
+                                <strong>${p.name}</strong> (${p.type})
+                            </label>
+                        </div>`;
+                    });
+                    
+                    html += `</div>`;
                 });
                 
                 html += `</div>`;
@@ -1243,12 +1269,17 @@
             
             checkboxes.forEach((cb, idx) => {
                 const dataIndex = parseInt(cb.getAttribute('data-index'));
+                const isFA = cb.getAttribute('data-is-fa') === 'true';
                 const isChecked = cb.checked;
                 
                 if (isChecked) {
-                    const pitcher = rosterModeData[dataIndex];
-                    console.log(`  ✓ Checkbox ${idx} (data-index=${dataIndex}): ${pitcher.name} (${pitcher.fantasyTeam})`);
-                    selected.push(pitcher);
+                    if (isFA) {
+                        console.log(`  ⚠️ Checkbox ${idx} (data-index=${dataIndex}): FREE AGENT - SKIPPED from calculations`);
+                    } else {
+                        const pitcher = rosterModeData[dataIndex];
+                        console.log(`  ✓ Checkbox ${idx} (data-index=${dataIndex}): ${pitcher.name} (${pitcher.fantasyTeam})`);
+                        selected.push(pitcher);
+                    }
                 } else {
                     const pitcher = rosterModeData[dataIndex];
                     console.log(`  ☐ Checkbox ${idx} (data-index=${dataIndex}): ${pitcher.name} (${pitcher.fantasyTeam}) - SKIPPED`);
@@ -1256,11 +1287,11 @@
             });
             
             console.log(`=== SELECTION COMPLETE ===`);
-            console.log(`Selected ${selected.length} pitchers`);
+            console.log(`Selected ${selected.length} pitchers (excluding FA)`);
             console.log(`Teams in selection:`, [...new Set(selected.map(p => p.fantasyTeam))]);
             
             if (selected.length === 0) {
-                alert('Please select at least one pitcher who was in your lineup');
+                alert('Please select at least one pitcher who was in your lineup (Free Agents are excluded)');
                 return;
             }
             
