@@ -636,7 +636,7 @@
                 console.log('Fetching rosters from Fantrax for league:', leagueId);
                 
                 // TODO: Replace with your Vercel URL after deployment
-                const PROXY_URL = 'https://YOUR-VERCEL-URL.vercel.app/api/roster';
+                const PROXY_URL = 'https://fantrax-proxy.vercel.app/api/roster';
                 
                 const response = await fetch(`${PROXY_URL}?leagueId=${leagueId}`, {
                     method: 'GET',
