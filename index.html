@@ -566,7 +566,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v5.1.0 - API Working
+        v5.2.0 - Real Player Names
     </div>
     
     <script>
@@ -679,10 +679,10 @@
                 // Build roster array (team, player, position)
                 const roster = [];
                 
-                // Check if we have player data in the response
-                const playerData = data.playerInfo || data.players || {};
-                console.log('Player info available:', Object.keys(playerData).length > 0);
-                console.log('Player data sample:', Object.keys(playerData).slice(0, 3), Object.values(playerData).slice(0, 1));
+                // Check if we have player names mapping
+                const playerNames = data.playerNames || {};
+                console.log('Player names available:', Object.keys(playerNames).length);
+                console.log('Player names sample:', Object.keys(playerNames).slice(0, 3).map(k => `${k}: ${playerNames[k]?.name || playerNames[k]}`));
                 
                 teamRosters.forEach(team => {
                     const teamName = team.name || team.teamName || 'Unknown Team';
@@ -691,24 +691,26 @@
                     console.log(`Processing ${teamName}: ${rosterItems.length} players`);
                     
                     rosterItems.forEach(item => {
-                        // Get player info from playerData if available
-                        const playerId = item.id || item.playerId;
-                        const playerInfo = playerData[playerId] || {};
+                        // Get player ID
+                        const fantraxId = item.id || item.playerId;
+                        const position = item.position || '';
                         
-                        // Handle different API response formats
-                        const player = playerInfo.name || item.player?.name || item.playerName || item.name || `Player_${playerId}`;
-                        const position = item.position || playerInfo.position || '';
-                        
-                        // Only include pitchers
-                        if (position && (position.includes('SP') || position.includes('RP') || position === 'P')) {
-                            roster.push({ 
-                                team: teamName, 
-                                player: player,
-                                position: position,
-                                playerId: playerId
-                            });
-                            console.log(`  Found pitcher: ${player} (${position})`);
+                        // Only process pitchers
+                        if (!position || !(position.includes('SP') || position.includes('RP') || position === 'P')) {
+                            return;
                         }
+                        
+                        // Look up player name from playerNames mapping
+                        const playerData = playerNames[fantraxId] || {};
+                        const playerName = playerData.name || playerData.fullName || `Player_${fantraxId}`;
+                        
+                        roster.push({ 
+                            team: teamName, 
+                            player: playerName,
+                            position: position,
+                            fantraxId: fantraxId
+                        });
+                        console.log(`  Found pitcher: ${playerName} (${position})`);
                     });
                 });
                 
