@@ -571,7 +571,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v5.3.1 - First Pitch Time Fix
+        v5.3.2 - Batters Faced Filter
     </div>
     
     <script>
@@ -830,6 +830,15 @@
                             );
                             
                             if (pitcher && pitcher.stats.pitching) {
+                                // CRITICAL: Only include if they actually pitched (faced at least 1 batter)
+                                const battersFaced = pitcher.stats.pitching.battersFaced || 0;
+                                const pitchesThrown = pitcher.stats.pitching.numberOfPitches || 0;
+                                
+                                if (battersFaced === 0 && pitchesThrown === 0) {
+                                    console.log(`  SKIPPED: ${pitcher.person.fullName} - listed but did not pitch (0 BF, 0 pitches)`);
+                                    continue;
+                                }
+                                
                                 const appearanceKey = `${player.team}|${mlbPlayer.id}|${game.gamePk}`;
                                 
                                 if (seenAppearances.has(appearanceKey)) {
@@ -849,7 +858,7 @@
                                 gameTime = new Date(gameTime.getTime() + (pitcherOrder * 1000));
                                 
                                 const ip = pitcher.stats.pitching.inningsPitched || '0';
-                                console.log(`  ADDED: ${pitcher.person.fullName} (${isStart ? 'SP' : 'RP'}) on ${game.gameDate} - IP: ${ip}`);
+                                console.log(`  ADDED: ${pitcher.person.fullName} (${isStart ? 'SP' : 'RP'}) on ${gameTime.toISOString()} - IP: ${ip}, BF: ${battersFaced}`);
                                 
                                 rosterModeData.push({
                                     fantasyTeam: player.team,
@@ -1093,6 +1102,15 @@
                             );
                             
                             if (pitcher && pitcher.stats.pitching) {
+                                // CRITICAL: Only include if they actually pitched (faced at least 1 batter)
+                                const battersFaced = pitcher.stats.pitching.battersFaced || 0;
+                                const pitchesThrown = pitcher.stats.pitching.numberOfPitches || 0;
+                                
+                                if (battersFaced === 0 && pitchesThrown === 0) {
+                                    console.log(`  SKIPPED: ${pitcher.person.fullName} - listed but did not pitch (0 BF, 0 pitches)`);
+                                    continue;
+                                }
+                                
                                 // Create unique key
                                 const appearanceKey = `${player.team}|${mlbPlayer.id}|${game.gamePk}`;
                                 
@@ -1113,7 +1131,7 @@
                                 gameTime = new Date(gameTime.getTime() + (pitcherOrder * 1000));
                                 
                                 const ip = pitcher.stats.pitching.inningsPitched || '0';
-                                console.log(`  ADDED: ${pitcher.person.fullName} (${isStart ? 'SP' : 'RP'}) on ${game.gameDate} - IP: ${ip}`);
+                                console.log(`  ADDED: ${pitcher.person.fullName} (${isStart ? 'SP' : 'RP'}) on ${gameTime.toISOString()} - IP: ${ip}, BF: ${battersFaced}`);
                                 
                                 rosterModeData.push({
                                     fantasyTeam: player.team,
