@@ -421,6 +421,16 @@
                         <h3 style="color:#EAAA00;margin:0 0 10px 0;">✅ Pitchers Found</h3>
                         <p style="color:#f0f0f0;margin-bottom:15px;">Check the boxes for pitchers who were <strong>IN YOUR LINEUP</strong> (not benched)</p>
                         
+                        <!-- Bulk Selection Buttons -->
+                        <div style="display:flex;gap:10px;margin-bottom:15px;">
+                            <button class="btn" onclick="selectAllPitchers()" style="flex:1;padding:10px;background:#2a3f5f;color:#fff;border:1px solid #EAAA00;font-size:13px;">
+                                ☑️ Select All
+                            </button>
+                            <button class="btn" onclick="unselectAllPitchers()" style="flex:1;padding:10px;background:#2a3f5f;color:#fff;border:1px solid #EAAA00;font-size:13px;">
+                                ☐ Unselect All
+                            </button>
+                        </div>
+                        
                         <!-- Continue Button at Top -->
                         <button class="btn" onclick="processSelectedPitchers()" style="width:100%;padding:15px;margin-bottom:20px;font-size:16px;background:#CE1141;color:#fff;font-weight:bold;box-shadow:0 4px 12px rgba(206,17,65,0.4);">
                             ⚾ Continue with Selected Pitchers →
@@ -579,7 +589,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v5.3.5 - Debug Logging
+        v5.3.6 - Select All Buttons
     </div>
     
     <script>
@@ -1205,6 +1215,18 @@
             
             document.getElementById('rosterCheckboxes').innerHTML = html;
             document.getElementById('rosterResults').style.display = 'block';
+        }
+        
+        function selectAllPitchers() {
+            const checkboxes = document.querySelectorAll('#rosterCheckboxes input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = true);
+            console.log(`Selected all ${checkboxes.length} pitchers`);
+        }
+        
+        function unselectAllPitchers() {
+            const checkboxes = document.querySelectorAll('#rosterCheckboxes input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+            console.log(`Unselected all ${checkboxes.length} pitchers`);
         }
         
         function processSelectedPitchers() {
