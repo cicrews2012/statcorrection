@@ -653,10 +653,10 @@
                 
                 if (data.rosters) {
                     // Convert rosters object to array
-                    teamRosters = Object.entries(data.rosters).map(([teamId, roster]) => ({
+                    teamRosters = Object.entries(data.rosters).map(([teamId, rosterData]) => ({
                         teamId: teamId,
-                        name: roster.name || 'Unknown Team',
-                        roster: roster.roster || []
+                        name: rosterData.teamName || rosterData.name || 'Unknown Team',
+                        roster: rosterData.rosterItems || rosterData.roster || []
                     }));
                     console.log('Converted rosters to array:', teamRosters);
                 } else if (data.teamRosters) {
@@ -678,22 +678,35 @@
                 
                 // Build roster array (team, player, position)
                 const roster = [];
+                
+                // Check if we have player data in the response
+                const playerData = data.playerInfo || data.players || {};
+                console.log('Player info available:', Object.keys(playerData).length > 0);
+                
                 teamRosters.forEach(team => {
                     const teamName = team.name || team.teamName || 'Unknown Team';
                     const rosterItems = team.roster || team.rosterItems || [];
                     
+                    console.log(`Processing ${teamName}: ${rosterItems.length} players`);
+                    
                     rosterItems.forEach(item => {
+                        // Get player info from playerData if available
+                        const playerId = item.id || item.playerId;
+                        const playerInfo = playerData[playerId] || {};
+                        
                         // Handle different API response formats
-                        const player = item.player?.name || item.playerName || item.name;
-                        const position = item.player?.position || item.position || '';
+                        const player = playerInfo.name || item.player?.name || item.playerName || item.name || `Player_${playerId}`;
+                        const position = item.position || playerInfo.position || '';
                         
                         // Only include pitchers
                         if (position && (position.includes('SP') || position.includes('RP') || position === 'P')) {
                             roster.push({ 
                                 team: teamName, 
                                 player: player,
-                                position: position
+                                position: position,
+                                playerId: playerId
                             });
+                            console.log(`  Found pitcher: ${player} (${position})`);
                         }
                     });
                 });
