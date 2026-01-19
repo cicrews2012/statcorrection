@@ -579,7 +579,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v5.3.4 - Checkbox Selection Fix
+        v5.3.5 - Debug Logging
     </div>
     
     <script>
@@ -1212,22 +1212,37 @@
             const selected = [];
             const checkboxes = document.querySelectorAll('#rosterCheckboxes input[type="checkbox"]');
             
-            checkboxes.forEach((cb) => {
-                if (cb.checked) {
-                    const dataIndex = parseInt(cb.getAttribute('data-index'));
-                    selected.push(rosterModeData[dataIndex]);
+            console.log(`=== PROCESSING SELECTIONS ===`);
+            console.log(`Total checkboxes found: ${checkboxes.length}`);
+            console.log(`Total rosterModeData entries: ${rosterModeData.length}`);
+            
+            checkboxes.forEach((cb, idx) => {
+                const dataIndex = parseInt(cb.getAttribute('data-index'));
+                const isChecked = cb.checked;
+                
+                if (isChecked) {
+                    const pitcher = rosterModeData[dataIndex];
+                    console.log(`  ✓ Checkbox ${idx} (data-index=${dataIndex}): ${pitcher.name} (${pitcher.fantasyTeam})`);
+                    selected.push(pitcher);
+                } else {
+                    const pitcher = rosterModeData[dataIndex];
+                    console.log(`  ☐ Checkbox ${idx} (data-index=${dataIndex}): ${pitcher.name} (${pitcher.fantasyTeam}) - SKIPPED`);
                 }
             });
+            
+            console.log(`=== SELECTION COMPLETE ===`);
+            console.log(`Selected ${selected.length} pitchers`);
+            console.log(`Teams in selection:`, [...new Set(selected.map(p => p.fantasyTeam))]);
             
             if (selected.length === 0) {
                 alert('Please select at least one pitcher who was in your lineup');
                 return;
             }
             
-            console.log(`Selected ${selected.length} pitchers from checkboxes`);
-            
             // Set gameData to selected pitchers
             gameData = selected;
+            
+            console.log(`gameData set to ${gameData.length} pitchers`);
             
             // Copy week dates to main form
             document.getElementById('weekStart').value = document.getElementById('rosterWeekStart').value;
