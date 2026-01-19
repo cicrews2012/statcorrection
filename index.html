@@ -6,12 +6,8 @@
     <title>Fantrax Pitcher Tracker</title>
     
     <!-- 
-    TODO BEFORE USING API SYNC:
-    1. Deploy the fantrax-proxy to Vercel
-    2. Get your URL: https://YOUR-APP.vercel.app
-    3. Find line ~630 and replace 'YOUR-VERCEL-URL' with your actual URL
-    4. Search for: const PROXY_URL = 'https://YOUR-VERCEL-URL.vercel.app/api/roster';
-    5. Update it to: const PROXY_URL = 'https://fantrax-proxy-abc123.vercel.app/api/roster';
+    Fantrax API Sync: CONFIGURED ✓
+    Proxy URL: https://fantrax-proxy.vercel.app/api/roster
     -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -635,8 +631,8 @@
                 // Call Fantrax API via CORS proxy
                 console.log('Fetching rosters from Fantrax for league:', leagueId);
                 
-                // TODO: Replace with your Vercel URL after deployment
-                const PROXY_URL = 'https://YOUR-VERCEL-URL.vercel.app/api/roster';
+                // Using deployed Vercel proxy
+                const PROXY_URL = 'https://fantrax-proxy.vercel.app/api/roster';
                 
                 const response = await fetch(`${PROXY_URL}?leagueId=${leagueId}`, {
                     method: 'GET',
