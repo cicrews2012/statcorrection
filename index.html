@@ -230,7 +230,7 @@
             </div>
             
             <!-- Manual Entry Mode -->
-            <div id="manualMode" style="display:block;">
+            <div id="manualMode" style="display:none;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
                 <h2>Week Setup</h2>
                 <button class="btn btn-secondary" onclick="resetAll()">🔄 Clear</button>
@@ -314,7 +314,7 @@
             </div>
             
             <!-- League Roster Import Mode -->
-            <div id="rosterMode" style="display:none;">
+            <div id="rosterMode" style="display:block;">
                 <!-- Hero Section - API Sync with Braves Colors -->
                 <div style="background:linear-gradient(135deg, #13274F 0%, #1a3566 100%);padding:30px;border-radius:12px;margin-bottom:30px;box-shadow:0 10px 40px rgba(206,17,65,0.3);border:2px solid #CE1141;">
                     <div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;">
@@ -571,7 +571,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v5.3.0 - Braves Theme + Roster Viewer
+        v5.3.1 - First Pitch Time Fix
     </div>
     
     <script>
@@ -856,7 +856,7 @@
                                     name: pitcher.person.fullName,
                                     playerId: pitcher.person.id,
                                     mlbTeam: mlbPlayer.currentTeam.abbreviation,
-                                    gameDate: game.gameDate,
+                                    gameDate: gameTime.toISOString(),  // CRITICAL: Use actual first pitch time
                                     gameTime: gameTime,
                                     type: isStart ? 'SP' : 'RP',
                                     stats: pitcher.stats.pitching
@@ -955,17 +955,17 @@
             if (mode === 'manual') {
                 document.getElementById('manualMode').style.display = 'block';
                 document.getElementById('rosterMode').style.display = 'none';
-                document.getElementById('modeManual').classList.remove('btn-secondary');
-                document.getElementById('modeManual').classList.add('btn-primary');
-                document.getElementById('modeRoster').classList.remove('btn-primary');
-                document.getElementById('modeRoster').classList.add('btn-secondary');
+                document.getElementById('modeManual').style.background = '#CE1141';
+                document.getElementById('modeManual').style.fontWeight = '600';
+                document.getElementById('modeRoster').style.background = '#2a3f5f';
+                document.getElementById('modeRoster').style.fontWeight = 'normal';
             } else {
                 document.getElementById('manualMode').style.display = 'none';
                 document.getElementById('rosterMode').style.display = 'block';
-                document.getElementById('modeManual').classList.remove('btn-primary');
-                document.getElementById('modeManual').classList.add('btn-secondary');
-                document.getElementById('modeRoster').classList.remove('btn-secondary');
-                document.getElementById('modeRoster').classList.add('btn-primary');
+                document.getElementById('modeManual').style.background = '#2a3f5f';
+                document.getElementById('modeManual').style.fontWeight = 'normal';
+                document.getElementById('modeRoster').style.background = '#CE1141';
+                document.getElementById('modeRoster').style.fontWeight = '600';
             }
         }
         
@@ -1120,7 +1120,7 @@
                                     name: pitcher.person.fullName,
                                     playerId: pitcher.person.id,
                                     mlbTeam: mlbPlayer.currentTeam.abbreviation,
-                                    gameDate: game.gameDate,
+                                    gameDate: gameTime.toISOString(),  // CRITICAL: Use actual first pitch time
                                     gameTime: gameTime,
                                     type: isStart ? 'SP' : 'RP',
                                     stats: pitcher.stats.pitching
