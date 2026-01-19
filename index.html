@@ -648,31 +648,30 @@
                 const data = await response.json();
                 console.log('Fantrax API Response:', data);
                 
-                // Official API returns data directly, not wrapped in responses array
-                let teamRosters;
+                // Official API returns rosters as an object with team IDs as keys
+                let teamRosters = [];
                 
-                if (data.teamRosters) {
-                    // Direct format from official API
+                if (data.rosters) {
+                    // Convert rosters object to array
+                    teamRosters = Object.entries(data.rosters).map(([teamId, roster]) => ({
+                        teamId: teamId,
+                        name: roster.name || 'Unknown Team',
+                        roster: roster.roster || []
+                    }));
+                    console.log('Converted rosters to array:', teamRosters);
+                } else if (data.teamRosters) {
+                    // Direct array format
                     teamRosters = data.teamRosters;
                 } else if (data.responses && data.responses[0]) {
-                    // Old format (shouldn't happen with official API)
+                    // Old wrapped format
                     const responseData = data.responses[0];
-                    
-                    if (responseData.msgResponse && responseData.msgResponse.failStatus) {
-                        throw new Error(responseData.msgResponse.failReason || 'Fantrax API error');
+                    if (responseData.data && responseData.data.teamRosters) {
+                        teamRosters = responseData.data.teamRosters;
                     }
-                    
-                    if (!responseData.data || !responseData.data.teamRosters) {
-                        throw new Error('No roster data returned.');
-                    }
-                    
-                    teamRosters = responseData.data.teamRosters;
-                } else {
-                    throw new Error('Unexpected response format. Check console for details.');
                 }
                 
                 if (!teamRosters || teamRosters.length === 0) {
-                    throw new Error('No team rosters found in response.');
+                    throw new Error('No team rosters found in response. Check console for response structure.');
                 }
                 
                 console.log('Team rosters:', teamRosters);
@@ -684,11 +683,12 @@
                     const rosterItems = team.roster || team.rosterItems || [];
                     
                     rosterItems.forEach(item => {
+                        // Handle different API response formats
                         const player = item.player?.name || item.playerName || item.name;
                         const position = item.player?.position || item.position || '';
                         
                         // Only include pitchers
-                        if (position.includes('SP') || position.includes('RP') || position === 'P') {
+                        if (position && (position.includes('SP') || position.includes('RP') || position === 'P')) {
                             roster.push({ 
                                 team: teamName, 
                                 player: player,
