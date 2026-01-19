@@ -589,7 +589,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v5.3.6 - Select All Buttons
+        v5.3.7 - Data Index Fixed
     </div>
     
     <script>
@@ -1184,6 +1184,11 @@
                 return;
             }
             
+            // Add original index to each pitcher for reference
+            rosterModeData.forEach((p, i) => {
+                p.originalIndex = i;
+            });
+            
             // Group by team
             const byTeam = {};
             rosterModeData.forEach(p => {
@@ -1192,7 +1197,6 @@
             });
             
             let html = '';
-            let globalIdx = 0; // Track global index across all teams
             Object.keys(byTeam).sort().forEach((team, teamIdx) => {
                 html += `<div style="background:#2a3f5f;padding:15px;border-radius:6px;margin-bottom:15px;border-left:4px solid #EAAA00;">
                     <h4 style="color:#EAAA00;margin:0 0 10px 0;">${team}</h4>`;
@@ -1201,13 +1205,12 @@
                     const id = `check_${teamIdx}_${idx}`;
                     const date = new Date(p.gameDate).toLocaleDateString();
                     html += `<div style="padding:8px;margin:5px 0;background:#13274F;border-radius:4px;display:flex;align-items:center;gap:10px;">
-                        <input type="checkbox" id="${id}" data-index="${globalIdx}" style="width:18px;height:18px;cursor:pointer;">
+                        <input type="checkbox" id="${id}" data-index="${p.originalIndex}" style="width:18px;height:18px;cursor:pointer;">
                         <label for="${id}" style="color:#e5e7eb;cursor:pointer;flex:1;display:flex;justify-content:space-between;">
                             <span><strong>${p.name}</strong> (${p.type})</span>
                             <span style="color:#9ca3af;">${date}</span>
                         </label>
                     </div>`;
-                    globalIdx++;
                 });
                 
                 html += `</div>`;
