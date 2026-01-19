@@ -682,6 +682,7 @@
                 // Check if we have player data in the response
                 const playerData = data.playerInfo || data.players || {};
                 console.log('Player info available:', Object.keys(playerData).length > 0);
+                console.log('Player data sample:', Object.keys(playerData).slice(0, 3), Object.values(playerData).slice(0, 1));
                 
                 teamRosters.forEach(team => {
                     const teamName = team.name || team.teamName || 'Unknown Team';
