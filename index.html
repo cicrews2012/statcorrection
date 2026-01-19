@@ -217,14 +217,14 @@
             </div>
             
             <!-- Mode Selector -->
-            <div style="background:#1f2937;padding:20px;border-radius:8px;margin-bottom:20px;border:2px solid #3b82f6;">
-                <h3 style="color:#60a5fa;margin:0 0 15px 0;">Select Import Mode</h3>
+            <div style="background:#13274F;padding:20px;border-radius:8px;margin-bottom:20px;border:2px solid #CE1141;">
+                <h3 style="color:#EAAA00;margin:0 0 15px 0;">Select Import Mode</h3>
                 <div style="display:flex;gap:15px;">
-                    <button class="btn btn-primary" onclick="switchMode('manual')" id="modeManual" style="flex:1;">
-                        📝 Manual Entry (Current)
+                    <button class="btn" onclick="switchMode('roster')" id="modeRoster" style="flex:1;background:#CE1141;color:#fff;font-weight:600;">
+                        🚀 League Roster Import (NEW)
                     </button>
-                    <button class="btn btn-secondary" onclick="switchMode('roster')" id="modeRoster" style="flex:1;">
-                        📋 League Roster Import (NEW)
+                    <button class="btn" onclick="switchMode('manual')" id="modeManual" style="flex:1;background:#2a3f5f;color:#fff;">
+                        📝 Manual Entry
                     </button>
                 </div>
             </div>
@@ -315,62 +315,62 @@
             
             <!-- League Roster Import Mode -->
             <div id="rosterMode" style="display:none;">
-                <!-- Hero Section - API Sync -->
-                <div style="background:linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);padding:30px;border-radius:12px;margin-bottom:30px;box-shadow:0 10px 40px rgba(59,130,246,0.3);">
+                <!-- Hero Section - API Sync with Braves Colors -->
+                <div style="background:linear-gradient(135deg, #13274F 0%, #1a3566 100%);padding:30px;border-radius:12px;margin-bottom:30px;box-shadow:0 10px 40px rgba(206,17,65,0.3);border:2px solid #CE1141;">
                     <div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;">
                         <div style="font-size:48px;">🚀</div>
                         <div>
                             <h2 style="color:#fff;margin:0;font-size:28px;font-weight:bold;">Live Roster Sync</h2>
-                            <p style="color:#bfdbfe;margin:5px 0 0 0;font-size:14px;">Instantly pull rosters from Fantrax - no manual upload needed</p>
+                            <p style="color:#EAAA00;margin:5px 0 0 0;font-size:14px;font-weight:500;">Instantly pull rosters from Fantrax - no manual upload needed</p>
                         </div>
                     </div>
                     
-                    <div style="background:rgba(255,255,255,0.1);backdrop-filter:blur(10px);padding:25px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);">
+                    <div style="background:rgba(255,255,255,0.08);backdrop-filter:blur(10px);padding:25px;border-radius:8px;border:1px solid rgba(234,170,0,0.3);">
                         <div class="form-group" style="margin-bottom:20px;">
-                            <label style="color:#fff;font-weight:600;">Fantrax League ID</label>
-                            <input type="text" id="fantraxLeagueId" class="form-group input" placeholder="e.g., cbla2gq5mhdvy7q4" value="cbla2gq5mhdvy7q4" style="font-size:16px;padding:12px;">
-                            <div style="font-size:12px;color:#bfdbfe;margin-top:5px;">
-                                💡 Find in your league URL: fantrax.com/fantasy/league/<strong style="color:#fbbf24;">YOUR_ID_HERE</strong>/
+                            <label style="color:#EAAA00;font-weight:600;font-size:14px;">Fantrax League ID</label>
+                            <input type="text" id="fantraxLeagueId" class="form-group input" placeholder="e.g., cbla2gq5mhdvy7q4" value="cbla2gq5mhdvy7q4" style="font-size:16px;padding:12px;background:#fff;color:#13274F;border:2px solid #EAAA00;">
+                            <div style="font-size:12px;color:#f0f0f0;margin-top:5px;">
+                                💡 Find in your league URL: fantrax.com/fantasy/league/<strong style="color:#EAAA00;">YOUR_ID_HERE</strong>/
                             </div>
                         </div>
                         
                         <div class="form-group" style="margin-bottom:20px;">
-                            <label style="color:#fff;font-weight:600;">Week Dates</label>
+                            <label style="color:#EAAA00;font-weight:600;font-size:14px;">Week Dates</label>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                                <input type="date" id="apiWeekStart" class="form-group input" style="padding:12px;">
-                                <input type="date" id="apiWeekEnd" class="form-group input" style="padding:12px;">
+                                <input type="date" id="apiWeekStart" class="form-group input" style="padding:12px;background:#fff;color:#13274F;border:2px solid #EAAA00;">
+                                <input type="date" id="apiWeekEnd" class="form-group input" style="padding:12px;background:#fff;color:#13274F;border:2px solid #EAAA00;">
                             </div>
                         </div>
                         
-                        <button class="btn" onclick="syncFromFantrax()" style="width:100%;padding:16px;font-size:18px;font-weight:bold;background:#10b981;border:none;position:relative;overflow:hidden;">
-                            <span style="position:relative;z-index:1;">🔄 Sync Rosters & Find Pitchers</span>
+                        <button class="btn" onclick="syncFromFantrax()" style="width:100%;padding:16px;font-size:18px;font-weight:bold;background:#CE1141;color:#fff;border:none;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(206,17,65,0.4);">
+                            <span style="position:relative;z-index:1;">⚡ Sync Rosters & Find Pitchers</span>
                         </button>
                         
                         <!-- Snapshot Controls -->
-                        <div style="margin-top:20px;padding:15px;background:rgba(16,185,129,0.1);border-radius:6px;border:1px solid rgba(16,185,129,0.3);">
+                        <div style="margin-top:20px;padding:15px;background:rgba(234,170,0,0.1);border-radius:6px;border:1px solid rgba(234,170,0,0.3);">
                             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
                                 <span style="font-size:20px;">📸</span>
-                                <h4 style="color:#34d399;margin:0;font-size:14px;font-weight:600;">Roster Snapshot (Optional)</h4>
+                                <h4 style="color:#EAAA00;margin:0;font-size:14px;font-weight:600;">Roster Snapshot (Optional)</h4>
                             </div>
-                            <p style="color:#d1fae5;font-size:12px;margin:0 0 10px 0;">Save current rosters before weekly processing (recommended Sunday night)</p>
+                            <p style="color:#f0f0f0;font-size:12px;margin:0 0 10px 0;">Save current rosters before weekly processing (recommended Sunday night)</p>
                             <div style="display:flex;gap:10px;">
-                                <button class="btn" onclick="saveRosterSnapshot()" style="flex:1;background:#059669;font-size:13px;padding:10px;">
+                                <button class="btn" onclick="saveRosterSnapshot()" style="flex:1;background:#2a3f5f;color:#fff;font-size:13px;padding:10px;border:1px solid #EAAA00;">
                                     💾 Save Snapshot
                                 </button>
-                                <button class="btn" onclick="loadRosterSnapshot()" style="flex:1;background:#6366f1;font-size:13px;padding:10px;">
+                                <button class="btn" onclick="loadRosterSnapshot()" style="flex:1;background:#2a3f5f;color:#fff;font-size:13px;padding:10px;border:1px solid #EAAA00;">
                                     📂 Load Snapshot
                                 </button>
                             </div>
-                            <div id="snapshotStatus" style="color:#d1fae5;font-size:11px;margin-top:8px;text-align:center;"></div>
+                            <div id="snapshotStatus" style="color:#EAAA00;font-size:11px;margin-top:8px;text-align:center;"></div>
                         </div>
                     </div>
                     
-                    <div style="margin-top:20px;padding:15px;background:rgba(251,191,36,0.1);border-radius:6px;border-left:4px solid #fbbf24;">
+                    <div style="margin-top:20px;padding:15px;background:rgba(234,170,0,0.15);border-radius:6px;border-left:4px solid #EAAA00;">
                         <div style="display:flex;align-items:start;gap:10px;">
                             <span style="font-size:20px;">⚡</span>
                             <div style="flex:1;">
-                                <strong style="color:#fcd34d;display:block;margin-bottom:5px;">Pro Tip:</strong>
-                                <p style="color:#fef3c7;margin:0;font-size:13px;line-height:1.5;">
+                                <strong style="color:#EAAA00;display:block;margin-bottom:5px;">Pro Tip:</strong>
+                                <p style="color:#f0f0f0;margin:0;font-size:13px;line-height:1.5;">
                                     Run sync <strong>before Monday waivers</strong> to capture accurate rosters. Use "Save Snapshot" on Sunday night, then "Load Snapshot" Monday morning for perfect accuracy.
                                 </p>
                             </div>
@@ -378,44 +378,50 @@
                     </div>
                 </div>
                 
+                <!-- Rosters Viewer (NEW) -->
+                <div id="rostersViewer" style="display:none;background:#13274F;padding:20px;border-radius:8px;margin-bottom:20px;border:2px solid #EAAA00;">
+                    <h3 style="color:#EAAA00;margin:0 0 15px 0;">📊 Loaded Rosters</h3>
+                    <div id="rostersViewerContent" style="color:#f0f0f0;"></div>
+                </div>
+                
                 <!-- Alternative Method - CSV Upload -->
                 <details style="margin-bottom:20px;">
-                    <summary style="background:#374151;padding:15px;border-radius:8px;cursor:pointer;color:#e5e7eb;font-weight:600;list-style:none;display:flex;align-items:center;justify-content:space-between;">
+                    <summary style="background:#2a3f5f;padding:15px;border-radius:8px;cursor:pointer;color:#f0f0f0;font-weight:600;list-style:none;display:flex;align-items:center;justify-content:space-between;border:1px solid rgba(234,170,0,0.3);">
                         <span>📄 Alternative: Manual CSV Upload</span>
-                        <span style="font-size:12px;color:#9ca3af;">Click to expand</span>
+                        <span style="font-size:12px;color:#EAAA00;">Click to expand</span>
                     </summary>
                     
-                    <div style="background:#1f2937;padding:20px;border-radius:0 0 8px 8px;margin-top:-8px;border-top:2px solid #4b5563;">
-                        <p style="color:#9ca3af;margin-bottom:15px;font-size:14px;">Use this if API sync isn't working or for historical data analysis.</p>
+                    <div style="background:#13274F;padding:20px;border-radius:0 0 8px 8px;margin-top:-8px;border-top:2px solid #CE1141;">
+                        <p style="color:#f0f0f0;margin-bottom:15px;font-size:14px;">Use this if API sync isn't working or for historical data analysis.</p>
                         
                         <div class="form-group">
-                            <label>Upload Fantrax CSV Export</label>
-                            <input type="file" id="fantraxFile" accept=".csv" style="width:100%;padding:10px;border:2px solid #374151;border-radius:6px;background:#111827;color:#e5e7eb;cursor:pointer;">
-                            <div style="font-size:12px;color:#9ca3af;margin-top:5px;">
+                            <label style="color:#EAAA00;">Upload Fantrax CSV Export</label>
+                            <input type="file" id="fantraxFile" accept=".csv" style="width:100%;padding:10px;border:2px solid #EAAA00;border-radius:6px;background:#fff;color:#13274F;cursor:pointer;">
+                            <div style="font-size:12px;color:#f0f0f0;margin-top:5px;">
                                 💡 Export from Fantrax: Players > Export > Download CSV
                             </div>
                         </div>
                         
                         <div class="form-group">
-                            <label>Week Dates</label>
+                            <label style="color:#EAAA00;">Week Dates</label>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                                <input type="date" id="rosterWeekStart" class="form-group input">
-                                <input type="date" id="rosterWeekEnd" class="form-group input">
+                                <input type="date" id="rosterWeekStart" class="form-group input" style="background:#fff;color:#13274F;border:2px solid #EAAA00;">
+                                <input type="date" id="rosterWeekEnd" class="form-group input" style="background:#fff;color:#13274F;border:2px solid #EAAA00;">
                             </div>
                         </div>
                         
-                        <button class="btn btn-secondary" onclick="processFantraxCSV()" style="width:100%;padding:15px;font-size:16px;">
+                        <button class="btn" onclick="processFantraxCSV()" style="width:100%;padding:15px;font-size:16px;background:#2a3f5f;color:#fff;border:2px solid #EAAA00;">
                             🔍 Find All Pitchers Who Pitched This Week
                         </button>
                     </div>
                 </details>
                 
                 <div id="rosterResults" style="display:none;">
-                    <div style="background:#1f2937;padding:20px;border-radius:8px;margin-bottom:20px;">
-                        <h3 style="color:#e5e7eb;margin:0 0 10px 0;">✅ Pitchers Found</h3>
-                        <p style="color:#9ca3af;margin-bottom:15px;">Check the boxes for pitchers who were <strong>IN YOUR LINEUP</strong> (not benched)</p>
+                    <div style="background:#13274F;padding:20px;border-radius:8px;margin-bottom:20px;border:2px solid #CE1141;">
+                        <h3 style="color:#EAAA00;margin:0 0 10px 0;">✅ Pitchers Found</h3>
+                        <p style="color:#f0f0f0;margin-bottom:15px;">Check the boxes for pitchers who were <strong>IN YOUR LINEUP</strong> (not benched)</p>
                         <div id="rosterCheckboxes"></div>
-                        <button class="btn btn-success" onclick="processSelectedPitchers()" style="width:100%;padding:15px;margin-top:20px;font-size:16px;">
+                        <button class="btn" onclick="processSelectedPitchers()" style="width:100%;padding:15px;margin-top:20px;font-size:16px;background:#CE1141;color:#fff;font-weight:bold;">
                             Continue with Selected Pitchers →
                         </button>
                     </div>
@@ -565,7 +571,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v5.2.1 - API Sync Featured
+        v5.3.0 - Braves Theme + Roster Viewer
     </div>
     
     <script>
@@ -598,6 +604,45 @@
                 document.getElementById('methodCSV').classList.remove('btn-secondary');
                 document.getElementById('methodCSV').classList.add('btn-primary');
             }
+        }
+        
+        // Display rosters in viewer
+        function displayRostersViewer(teams, pitchers) {
+            const viewer = document.getElementById('rostersViewer');
+            const content = document.getElementById('rostersViewerContent');
+            
+            // Group pitchers by team
+            const pitchersByTeam = {};
+            pitchers.forEach(p => {
+                if (!pitchersByTeam[p.team]) pitchersByTeam[p.team] = [];
+                pitchersByTeam[p.team].push(p);
+            });
+            
+            let html = `<div style="margin-bottom:15px;padding:12px;background:rgba(234,170,0,0.1);border-radius:6px;border-left:4px solid #CE1141;">
+                <strong style="color:#CE1141;">✅ Successfully loaded ${teams.length} teams with ${pitchers.length} total pitchers</strong>
+            </div>`;
+            
+            html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:15px;">';
+            
+            teams.forEach(team => {
+                const teamPitchers = pitchersByTeam[team.name] || [];
+                html += `
+                    <details style="background:rgba(255,255,255,0.05);padding:15px;border-radius:6px;border:1px solid rgba(234,170,0,0.3);">
+                        <summary style="cursor:pointer;font-weight:600;color:#EAAA00;font-size:14px;user-select:none;">
+                            ${team.name} <span style="color:#fff;font-weight:normal;">(${teamPitchers.length} P)</span>
+                        </summary>
+                        <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(234,170,0,0.2);">
+                            ${teamPitchers.length > 0 ? teamPitchers.map(p => 
+                                `<div style="padding:4px 0;color:#f0f0f0;font-size:13px;">• ${p.player}</div>`
+                            ).join('') : '<div style="color:#999;font-size:13px;">No pitchers</div>'}
+                        </div>
+                    </details>
+                `;
+            });
+            
+            html += '</div>';
+            content.innerHTML = html;
+            viewer.style.display = 'block';
         }
         
         async function syncFromFantrax() {
@@ -720,6 +765,9 @@
                 }
                 
                 console.log(`Found ${roster.length} pitchers`);
+                
+                // Display rosters viewer
+                displayRostersViewer(teamRosters, roster);
                 
                 // Now process like CSV (find who pitched)
                 await processRosterData(roster, weekStart, weekEnd);
