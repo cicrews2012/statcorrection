@@ -626,7 +626,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v5.7.0 - Bulk Manual Add
+        v5.7.1 - Bulk Add w/ Game Verification
     </div>
     
     <script>
@@ -1248,39 +1248,100 @@
             
             let added = 0;
             let notFound = [];
+            let didNotPitch = [];
+            
+            const weekStart = date;
+            const weekEnd = date;
             
             for (const name of names) {
-                // Search for pitcher in MLB database
-                const searchResults = mlbPitchers.filter(p => 
-                    removeAccents(p.fullName.toLowerCase()).includes(removeAccents(name.toLowerCase()))
-                );
-                
-                if (searchResults.length === 0) {
-                    notFound.push(name);
-                    continue;
+                try {
+                    // Search for pitcher in MLB database
+                    const searchResults = mlbPitchers.filter(p => 
+                        removeAccents(p.fullName.toLowerCase()).includes(removeAccents(name.toLowerCase()))
+                    );
+                    
+                    if (searchResults.length === 0) {
+                        notFound.push(name);
+                        continue;
+                    }
+                    
+                    const mlbPlayer = searchResults[0];
+                    console.log(`Processing: ${mlbPlayer.fullName} - ${fantasyTeam}`);
+                    
+                    // Use EXACT same logic as API sync (lines 875-937)
+                    const gamesUrl = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=${weekStart}&endDate=${weekEnd}&teamId=${mlbPlayer.currentTeam.id}`;
+                    const gamesResp = await fetch(gamesUrl);
+                    const gamesData = await gamesResp.json();
+                    
+                    if (!gamesData.dates || gamesData.dates.length === 0) {
+                        didNotPitch.push(`${mlbPlayer.fullName} - no games found`);
+                        continue;
+                    }
+                    
+                    let foundAppearance = false;
+                    
+                    for (const dateEntry of gamesData.dates) {
+                        for (const game of dateEntry.games) {
+                            const boxscoreUrl = `https://statsapi.mlb.com/api/v1/game/${game.gamePk}/boxscore`;
+                            const boxResp = await fetch(boxscoreUrl);
+                            const boxData = await boxResp.json();
+                            
+                            const teamSide = boxData.teams.home.team.id === mlbPlayer.currentTeam.id ? 'home' : 'away';
+                            const teamData = boxData.teams[teamSide];
+                            
+                            const pitcher = Object.values(teamData.players).find(p => 
+                                p.person && p.person.id === mlbPlayer.id && p.stats && p.stats.pitching
+                            );
+                            
+                            if (pitcher && pitcher.stats.pitching) {
+                                // CRITICAL: Only include if they actually pitched (faced at least 1 batter)
+                                const battersFaced = pitcher.stats.pitching.battersFaced || 0;
+                                const pitchesThrown = pitcher.stats.pitching.numberOfPitches || 0;
+                                
+                                if (battersFaced === 0 && pitchesThrown === 0) {
+                                    console.log(`  SKIPPED: ${pitcher.person.fullName} - listed but did not pitch (0 BF, 0 pitches)`);
+                                    didNotPitch.push(`${mlbPlayer.fullName} - in boxscore but 0 BF`);
+                                    continue;
+                                }
+                                
+                                const isStart = teamData.pitchers && teamData.pitchers[0] == pitcher.person.id;
+                                const pitcherOrder = teamData.pitchers ? teamData.pitchers.indexOf(pitcher.person.id) : 0;
+                                
+                                let gameTime = new Date(game.gameDate);
+                                if (boxData.gameInfo && boxData.gameInfo.firstPitch) {
+                                    gameTime = new Date(boxData.gameInfo.firstPitch);
+                                }
+                                gameTime = new Date(gameTime.getTime() + (pitcherOrder * 1000));
+                                
+                                const ip = pitcher.stats.pitching.inningsPitched || '0';
+                                console.log(`  ADDED: ${pitcher.person.fullName} (${isStart ? 'SP' : 'RP'}) on ${gameTime.toISOString()} - IP: ${ip}, BF: ${battersFaced}`);
+                                
+                                rosterModeData.push({
+                                    fantasyTeam: fantasyTeam,
+                                    name: pitcher.person.fullName,
+                                    playerId: pitcher.person.id,
+                                    mlbTeam: mlbPlayer.currentTeam.abbreviation,
+                                    gameDate: gameTime.toISOString(),
+                                    gameTime: gameTime,
+                                    type: isStart ? 'SP' : 'RP',
+                                    stats: pitcher.stats.pitching,
+                                    originalIndex: rosterModeData.length
+                                });
+                                
+                                foundAppearance = true;
+                                added++;
+                            }
+                        }
+                    }
+                    
+                    if (!foundAppearance) {
+                        didNotPitch.push(`${mlbPlayer.fullName} - not in any boxscore`);
+                    }
+                    
+                } catch (e) {
+                    console.error('Error processing', name, e);
+                    notFound.push(`${name} - error: ${e.message}`);
                 }
-                
-                const mlbPlayer = searchResults[0];
-                
-                // Add with default values - actual game time will be determined when processing
-                const gameDateTime = new Date(`${date}T19:00:00`);
-                
-                const newPitcher = {
-                    fantasyTeam: fantasyTeam,
-                    name: mlbPlayer.fullName,
-                    playerId: mlbPlayer.id,
-                    mlbTeam: mlbPlayer.currentTeam?.abbreviation || 'N/A',
-                    gameDate: gameDateTime.toISOString(),
-                    gameTime: gameDateTime,
-                    type: 'RP', // Default, will be determined when processing
-                    stats: { inningsPitched: '0' },
-                    originalIndex: rosterModeData.length,
-                    isManual: true
-                };
-                
-                rosterModeData.push(newPitcher);
-                added++;
-                console.log(`✅ Added: ${mlbPlayer.fullName} (${fantasyTeam})`);
             }
             
             // Refresh display
@@ -1289,13 +1350,21 @@
             // Clear form
             document.getElementById('manualPlayerNames').value = '';
             
-            let message = `✅ Added ${added} pitcher(s) to ${fantasyTeam}`;
-            if (notFound.length > 0) {
-                message += `\n\n⚠️ Not found in MLB database:\n${notFound.join('\n')}`;
+            let message = '';
+            if (added > 0) {
+                message += `✅ Added ${added} pitcher(s) to ${fantasyTeam} who actually pitched on ${date}\n\n`;
             }
-            message += `\n\nCheck the list below to select these pitchers.`;
+            if (notFound.length > 0) {
+                message += `⚠️ Not found in MLB database:\n${notFound.join('\n')}\n\n`;
+            }
+            if (didNotPitch.length > 0) {
+                message += `⚠️ Did not pitch on ${date}:\n${didNotPitch.join('\n')}\n\n`;
+            }
+            if (added > 0) {
+                message += `Check the list below to select these pitchers.`;
+            }
             
-            alert(message);
+            alert(message || 'No pitchers were added.');
         }
         
         async function addManualPitcher() {
