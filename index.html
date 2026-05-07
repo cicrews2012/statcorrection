@@ -626,7 +626,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v5.7.4 - Debug First Pitch Time
+        v5.7.5 - Debug Boxscore Structure
     </div>
     
     <script>
@@ -1338,7 +1338,10 @@
                                 
                                 let gameTime = new Date(game.gameDate);
                                 console.log(`      Scheduled start: ${game.gameDate}`);
+                                console.log(`      boxData.gameInfo:`, boxData.gameInfo);
                                 console.log(`      boxData.gameInfo.firstPitch:`, boxData.gameInfo?.firstPitch);
+                                console.log(`      boxData.gameData:`, boxData.gameData);
+                                console.log(`      game object keys:`, Object.keys(game));
                                 
                                 if (boxData.gameInfo && boxData.gameInfo.firstPitch) {
                                     gameTime = new Date(boxData.gameInfo.firstPitch);
