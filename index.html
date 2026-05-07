@@ -630,7 +630,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v5.6.2 - Smart Manual Add
+        v5.6.3 - Bug Fix
     </div>
     
     <script>
@@ -1396,7 +1396,6 @@
             // Render pitchers
             renderPitcherCheckboxes();
             
-            document.getElementById('rosterCheckboxes').innerHTML = html;
             document.getElementById('rosterResults').style.display = 'block';
         }
         
@@ -1469,6 +1468,8 @@
                     html += `</div>`;
                 });
             }
+            
+            document.getElementById('rosterCheckboxes').innerHTML = html;
             
             document.getElementById('rosterCheckboxes').innerHTML = html;
             document.getElementById('rosterResults').style.display = 'block';
