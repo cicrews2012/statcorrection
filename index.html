@@ -630,7 +630,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v5.6.3 - Bug Fix
+        v5.6.4 - Preserve Checkboxes + Fix Game Times
     </div>
     
     <script>
@@ -1257,47 +1257,64 @@
             const mlbPlayer = searchResults[0];
             console.log(`Found pitcher: ${mlbPlayer.fullName} (ID: ${mlbPlayer.id})`);
             
-            // Fetch games for this date and team
+            // Fetch games for this date
             const dateObj = new Date(date);
             const startDate = dateObj.toISOString().split('T')[0];
             const endDate = dateObj.toISOString().split('T')[0];
             
             try {
-                const scheduleUrl = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=${startDate}&endDate=${endDate}&teamId=${mlbPlayer.currentTeam?.id || ''}`;
+                const scheduleUrl = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=${startDate}&endDate=${endDate}`;
                 const schedResp = await fetch(scheduleUrl);
                 const schedData = await schedResp.json();
                 
-                let gameFound = null;
-                let gameDateTime = new Date(`${date}T12:00:00`);
-                let pitcherType = 'SP'; // default
+                let gameDateTime = new Date(`${date}T19:00:00`); // Default to 7 PM
+                let pitcherType = 'RP'; // Default to RP
+                let gameFound = false;
                 
                 if (schedData.dates && schedData.dates.length > 0) {
                     for (const dateEntry of schedData.dates) {
                         for (const game of dateEntry.games) {
-                            // Check if this team played
-                            if (game.teams.away.team.abbreviation === mlbTeam || 
-                                game.teams.home.team.abbreviation === mlbTeam) {
-                                gameFound = game;
+                            // Check if this team played in this game
+                            const awayTeam = game.teams.away.team.abbreviation || game.teams.away.team.teamName;
+                            const homeTeam = game.teams.home.team.abbreviation || game.teams.home.team.teamName;
+                            
+                            if (awayTeam === mlbTeam || homeTeam === mlbTeam) {
+                                console.log(`Found game for ${mlbTeam}: ${game.gamePk}`);
+                                gameFound = true;
                                 
-                                // Try to get actual first pitch time
-                                const boxUrl = `https://statsapi.mlb.com/api/v1/game/${game.gamePk}/boxscore`;
-                                const boxResp = await fetch(boxUrl);
-                                const boxData = await boxResp.json();
-                                
-                                if (boxData.gameInfo?.firstPitch) {
-                                    gameDateTime = new Date(boxData.gameInfo.firstPitch);
-                                } else if (game.gameDate) {
-                                    gameDateTime = new Date(game.gameDate);
-                                }
-                                
-                                // Check if pitcher was starter or reliever
-                                const teamKey = game.teams.away.team.abbreviation === mlbTeam ? 'away' : 'home';
-                                const pitchers = boxData.teams?.[teamKey]?.pitchers || [];
-                                
-                                if (pitchers.length > 0 && pitchers[0] === mlbPlayer.id) {
-                                    pitcherType = 'SP';
-                                } else if (pitchers.includes(mlbPlayer.id)) {
-                                    pitcherType = 'RP';
+                                // Get actual first pitch time from boxscore
+                                try {
+                                    const boxUrl = `https://statsapi.mlb.com/api/v1/game/${game.gamePk}/boxscore`;
+                                    const boxResp = await fetch(boxUrl);
+                                    const boxData = await boxResp.json();
+                                    
+                                    if (boxData.gameInfo?.firstPitch) {
+                                        gameDateTime = new Date(boxData.gameInfo.firstPitch);
+                                        console.log(`First pitch: ${gameDateTime.toLocaleString()}`);
+                                    } else if (game.gameDate) {
+                                        gameDateTime = new Date(game.gameDate);
+                                    }
+                                    
+                                    // Determine if SP or RP by checking pitcher order
+                                    const teamKey = awayTeam === mlbTeam ? 'away' : 'home';
+                                    const pitchers = boxData.teams?.[teamKey]?.pitchers || [];
+                                    console.log(`Pitchers for ${mlbTeam}:`, pitchers);
+                                    
+                                    if (pitchers.length > 0) {
+                                        if (pitchers[0] === mlbPlayer.id) {
+                                            pitcherType = 'SP';
+                                            console.log(`${mlbPlayer.fullName} was the starter`);
+                                        } else if (pitchers.includes(mlbPlayer.id)) {
+                                            pitcherType = 'RP';
+                                            console.log(`${mlbPlayer.fullName} was a reliever`);
+                                        }
+                                    }
+                                } catch (boxErr) {
+                                    console.warn('Could not fetch boxscore:', boxErr);
+                                    // Use game.gameDate if boxscore fails
+                                    if (game.gameDate) {
+                                        gameDateTime = new Date(game.gameDate);
+                                    }
                                 }
                                 
                                 break;
@@ -1305,6 +1322,10 @@
                         }
                         if (gameFound) break;
                     }
+                }
+                
+                if (!gameFound) {
+                    console.warn(`No game found for ${mlbTeam} on ${date}`);
                 }
                 
                 // Add to rosterModeData
@@ -1343,9 +1364,9 @@
                     name: mlbPlayer.fullName,
                     playerId: mlbPlayer.id,
                     mlbTeam: mlbTeam,
-                    gameDate: new Date(`${date}T12:00:00`).toISOString(),
-                    gameTime: new Date(`${date}T12:00:00`),
-                    type: 'SP',
+                    gameDate: new Date(`${date}T19:00:00`).toISOString(),
+                    gameTime: new Date(`${date}T19:00:00`),
+                    type: 'RP',
                     stats: { inningsPitched: '0' },
                     originalIndex: rosterModeData.length,
                     isManual: true
@@ -1358,7 +1379,7 @@
                 document.getElementById('manualPlayerMLBTeam').value = '';
                 document.getElementById('manualPlayerDate').value = '';
                 
-                alert(`✅ Added: ${mlbPlayer.fullName} (${fantasyTeam})\n(Using default time - could not fetch game data)\n\nCheck the list below to select this pitcher.`);
+                alert(`✅ Added: ${mlbPlayer.fullName} (${fantasyTeam}) - RP\n(Using default time - could not fetch game data)\n\nCheck the list below to select this pitcher.`);
             }
         }
         
@@ -1403,7 +1424,17 @@
             renderPitcherCheckboxes();
         }
         
-        function renderPitcherCheckboxes() {
+        function renderPitcherCheckboxes(preserveSelections = true) {
+            // Save current checkbox states
+            const savedSelections = new Set();
+            if (preserveSelections) {
+                const checkboxes = document.querySelectorAll('#rosterCheckboxes input[type="checkbox"]:checked');
+                checkboxes.forEach(cb => {
+                    const index = parseInt(cb.getAttribute('data-index'));
+                    savedSelections.add(index);
+                });
+            }
+            
             const selectedTeam = document.getElementById('teamFilter').value;
             
             // Filter data if team selected
@@ -1454,8 +1485,9 @@
                         
                         pitchersByTeam[team].forEach((p, idx) => {
                             const id = `check_${dateIdx}_${team}_${idx}`;
+                            const isChecked = savedSelections.has(p.originalIndex) ? ' checked' : '';
                             html += `<div style="padding:6px;margin:3px 0;display:flex;align-items:center;gap:10px;">
-                                <input type="checkbox" id="${id}" data-index="${p.originalIndex}" data-is-fa="${isFreeAgent}" style="width:18px;height:18px;cursor:pointer;">
+                                <input type="checkbox" id="${id}" data-index="${p.originalIndex}" data-is-fa="${isFreeAgent}" style="width:18px;height:18px;cursor:pointer;"${isChecked}>
                                 <label for="${id}" style="color:${isFreeAgent ? '#888' : '#e5e7eb'};cursor:pointer;flex:1;font-size:14px;">
                                     <strong>${p.name}</strong> (${p.type})
                                 </label>
