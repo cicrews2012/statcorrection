@@ -427,12 +427,12 @@
                                 ➕ Manually Add Pitcher (for dropped/released players)
                             </summary>
                             <div style="margin-top:15px;padding-top:15px;border-top:1px solid rgba(234,170,0,0.3);">
-                                <p style="color:#f0f0f0;font-size:13px;margin-bottom:10px;">Use this if a pitcher was dropped/released mid-week and doesn't appear in the roster anymore.</p>
-                                <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
-                                    <div>
-                                        <label style="color:#EAAA00;font-size:12px;display:block;margin-bottom:5px;">Pitcher Name</label>
-                                        <input type="text" id="manualPlayerName" placeholder="e.g., Mike Burrows" style="width:100%;padding:8px;background:#13274F;color:#fff;border:1px solid #EAAA00;border-radius:4px;">
-                                    </div>
+                                <p style="color:#f0f0f0;font-size:13px;margin-bottom:10px;">Add pitchers who were dropped/released mid-week. One per line.</p>
+                                <div style="margin-bottom:10px;">
+                                    <label style="color:#EAAA00;font-size:12px;display:block;margin-bottom:5px;">Pitcher Names (one per line)</label>
+                                    <textarea id="manualPlayerNames" placeholder="Jakob Junis&#10;Jalen Beeks&#10;Tomoyuki Sugano" rows="4" style="width:100%;padding:8px;background:#13274F;color:#fff;border:1px solid #EAAA00;border-radius:4px;font-family:monospace;"></textarea>
+                                </div>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
                                     <div>
                                         <label style="color:#EAAA00;font-size:12px;display:block;margin-bottom:5px;">Fantasy Team</label>
                                         <select id="manualPlayerTeam" style="width:100%;padding:8px;background:#13274F;color:#fff;border:1px solid #EAAA00;border-radius:4px;">
@@ -440,16 +440,12 @@
                                         </select>
                                     </div>
                                     <div>
-                                        <label style="color:#EAAA00;font-size:12px;display:block;margin-bottom:5px;">MLB Team (optional)</label>
-                                        <input type="text" id="manualPlayerMLBTeam" placeholder="Auto-detect" maxlength="3" style="width:100%;padding:8px;background:#13274F;color:#fff;border:1px solid #EAAA00;border-radius:4px;text-transform:uppercase;">
-                                    </div>
-                                    <div>
                                         <label style="color:#EAAA00;font-size:12px;display:block;margin-bottom:5px;">Game Date</label>
                                         <input type="date" id="manualPlayerDate" style="width:100%;padding:8px;background:#13274F;color:#fff;border:1px solid #EAAA00;border-radius:4px;">
                                     </div>
                                 </div>
-                                <button class="btn" onclick="addManualPitcher()" style="width:100%;padding:10px;background:#CE1141;color:#fff;font-weight:600;">
-                                    ✅ Add to List
+                                <button class="btn" onclick="addManualPitchers()" style="width:100%;padding:10px;background:#CE1141;color:#fff;font-weight:600;">
+                                    ✅ Add All to List
                                 </button>
                             </div>
                         </details>
@@ -630,7 +626,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v5.6.6 - Debug Logging
+        v5.7.0 - Bulk Manual Add
     </div>
     
     <script>
@@ -1233,6 +1229,75 @@
             displayRosterResults();
         }
         
+        async function addManualPitchers() {
+            const namesText = document.getElementById('manualPlayerNames').value.trim();
+            const fantasyTeam = document.getElementById('manualPlayerTeam').value;
+            const date = document.getElementById('manualPlayerDate').value;
+            
+            if (!namesText || !fantasyTeam || !date) {
+                alert('Please fill in: Pitcher Names, Fantasy Team, and Game Date');
+                return;
+            }
+            
+            const names = namesText.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+            
+            if (names.length === 0) {
+                alert('Please enter at least one pitcher name');
+                return;
+            }
+            
+            let added = 0;
+            let notFound = [];
+            
+            for (const name of names) {
+                // Search for pitcher in MLB database
+                const searchResults = mlbPitchers.filter(p => 
+                    removeAccents(p.fullName.toLowerCase()).includes(removeAccents(name.toLowerCase()))
+                );
+                
+                if (searchResults.length === 0) {
+                    notFound.push(name);
+                    continue;
+                }
+                
+                const mlbPlayer = searchResults[0];
+                
+                // Add with default values - actual game time will be determined when processing
+                const gameDateTime = new Date(`${date}T19:00:00`);
+                
+                const newPitcher = {
+                    fantasyTeam: fantasyTeam,
+                    name: mlbPlayer.fullName,
+                    playerId: mlbPlayer.id,
+                    mlbTeam: mlbPlayer.currentTeam?.abbreviation || 'N/A',
+                    gameDate: gameDateTime.toISOString(),
+                    gameTime: gameDateTime,
+                    type: 'RP', // Default, will be determined when processing
+                    stats: { inningsPitched: '0' },
+                    originalIndex: rosterModeData.length,
+                    isManual: true
+                };
+                
+                rosterModeData.push(newPitcher);
+                added++;
+                console.log(`✅ Added: ${mlbPlayer.fullName} (${fantasyTeam})`);
+            }
+            
+            // Refresh display
+            renderPitcherCheckboxes();
+            
+            // Clear form
+            document.getElementById('manualPlayerNames').value = '';
+            
+            let message = `✅ Added ${added} pitcher(s) to ${fantasyTeam}`;
+            if (notFound.length > 0) {
+                message += `\n\n⚠️ Not found in MLB database:\n${notFound.join('\n')}`;
+            }
+            message += `\n\nCheck the list below to select these pitchers.`;
+            
+            alert(message);
+        }
+        
         async function addManualPitcher() {
             const name = document.getElementById('manualPlayerName').value.trim();
             const fantasyTeam = document.getElementById('manualPlayerTeam').value;
@@ -1291,10 +1356,14 @@
                         console.log(`Date entry: ${dateEntry.date}, Games: ${dateEntry.games.length}`);
                         for (const game of dateEntry.games) {
                             // Check if this team played in this game
-                            const awayTeam = game.teams.away.team.abbreviation || game.teams.away.team.teamName;
-                            const homeTeam = game.teams.home.team.abbreviation || game.teams.home.team.teamName;
+                            const awayTeam = game.teams?.away?.team?.abbreviation || 
+                                           game.teams?.away?.team?.teamCode || 
+                                           game.teams?.away?.team?.fileCode;
+                            const homeTeam = game.teams?.home?.team?.abbreviation || 
+                                           game.teams?.home?.team?.teamCode ||
+                                           game.teams?.home?.team?.fileCode;
                             
-                            console.log(`Game ${game.gamePk}: ${awayTeam} @ ${homeTeam}`);
+                            console.log(`Game ${game.gamePk}: ${awayTeam} @ ${homeTeam} (away obj:`, game.teams?.away?.team, `home obj:`, game.teams?.home?.team, `)`);
                             
                             if (awayTeam === mlbTeam || homeTeam === mlbTeam) {
                                 console.log(`✓ Found game for ${mlbTeam}: ${game.gamePk}`);
