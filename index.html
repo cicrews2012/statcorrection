@@ -626,7 +626,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v5.7.1 - Bulk Add w/ Game Verification
+        v5.7.2 - Debug Manual Add
     </div>
     
     <script>
@@ -1267,21 +1267,40 @@
                     
                     const mlbPlayer = searchResults[0];
                     console.log(`Processing: ${mlbPlayer.fullName} - ${fantasyTeam}`);
+                    console.log(`  MLB Team ID: ${mlbPlayer.currentTeam?.id}, Team Name: ${mlbPlayer.currentTeam?.name}`);
                     
                     // Use EXACT same logic as API sync (lines 875-937)
                     const gamesUrl = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=${weekStart}&endDate=${weekEnd}&teamId=${mlbPlayer.currentTeam.id}`;
+                    console.log(`  Fetching schedule: ${gamesUrl}`);
                     const gamesResp = await fetch(gamesUrl);
                     const gamesData = await gamesResp.json();
                     
+                    console.log(`  Schedule response:`, gamesData);
+                    
                     if (!gamesData.dates || gamesData.dates.length === 0) {
-                        didNotPitch.push(`${mlbPlayer.fullName} - no games found`);
-                        continue;
+                        console.log(`  ⚠️ No games found via team schedule. Trying broader search...`);
+                        
+                        // Fallback: search ALL games for this date
+                        const allGamesUrl = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=${weekStart}&endDate=${weekEnd}`;
+                        console.log(`  Fetching all games: ${allGamesUrl}`);
+                        const allGamesResp = await fetch(allGamesUrl);
+                        const allGamesData = await allGamesResp.json();
+                        
+                        if (!allGamesData.dates || allGamesData.dates.length === 0) {
+                            didNotPitch.push(`${mlbPlayer.fullName} - no games found`);
+                            continue;
+                        }
+                        
+                        // Use the all-games data instead
+                        gamesData.dates = allGamesData.dates;
                     }
                     
                     let foundAppearance = false;
                     
                     for (const dateEntry of gamesData.dates) {
+                        console.log(`  Checking date: ${dateEntry.date}, ${dateEntry.games.length} games`);
                         for (const game of dateEntry.games) {
+                            console.log(`    Game ${game.gamePk}: ${game.teams?.away?.team?.name} @ ${game.teams?.home?.team?.name}`);
                             const boxscoreUrl = `https://statsapi.mlb.com/api/v1/game/${game.gamePk}/boxscore`;
                             const boxResp = await fetch(boxscoreUrl);
                             const boxData = await boxResp.json();
@@ -1289,14 +1308,19 @@
                             const teamSide = boxData.teams.home.team.id === mlbPlayer.currentTeam.id ? 'home' : 'away';
                             const teamData = boxData.teams[teamSide];
                             
+                            console.log(`      Looking for player ID ${mlbPlayer.id} on ${teamSide} side`);
+                            
                             const pitcher = Object.values(teamData.players).find(p => 
                                 p.person && p.person.id === mlbPlayer.id && p.stats && p.stats.pitching
                             );
                             
                             if (pitcher && pitcher.stats.pitching) {
+                                console.log(`      ✓ Found pitcher in boxscore!`);
                                 // CRITICAL: Only include if they actually pitched (faced at least 1 batter)
                                 const battersFaced = pitcher.stats.pitching.battersFaced || 0;
                                 const pitchesThrown = pitcher.stats.pitching.numberOfPitches || 0;
+                                
+                                console.log(`      BF: ${battersFaced}, Pitches: ${pitchesThrown}`);
                                 
                                 if (battersFaced === 0 && pitchesThrown === 0) {
                                     console.log(`  SKIPPED: ${pitcher.person.fullName} - listed but did not pitch (0 BF, 0 pitches)`);
