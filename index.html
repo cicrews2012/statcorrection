@@ -589,7 +589,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v5.4.0 - Sort by Date + FA Excluded
+        v5.4.1 - Name Format Fix
     </div>
     
     <script>
@@ -816,12 +816,19 @@
                 document.getElementById('progressCount').textContent = processed;
                 
                 try {
+                    // Convert "Last, First" to "First Last" for matching
+                    let searchName = player.player;
+                    if (searchName.includes(',')) {
+                        const [last, first] = searchName.split(',').map(s => s.trim());
+                        searchName = `${first} ${last}`;
+                    }
+                    
                     const searchResults = mlbPitchers.filter(p => 
-                        removeAccents(p.fullName.toLowerCase()).includes(removeAccents(player.player.toLowerCase()))
+                        removeAccents(p.fullName.toLowerCase()).includes(removeAccents(searchName.toLowerCase()))
                     );
                     
                     if (searchResults.length === 0) {
-                        console.log(`Not found in MLB DB: ${player.player}`);
+                        console.log(`Not found in MLB DB: ${player.player} (searched as: ${searchName})`);
                         continue;
                     }
                     
@@ -1080,13 +1087,20 @@
                 document.getElementById('progressCount').textContent = processed;
                 
                 try {
+                    // Convert "Last, First" to "First Last" for matching
+                    let searchName = player.player;
+                    if (searchName.includes(',')) {
+                        const [last, first] = searchName.split(',').map(s => s.trim());
+                        searchName = `${first} ${last}`;
+                    }
+                    
                     // Search for player in MLB database
                     const searchResults = mlbPitchers.filter(p => 
-                        removeAccents(p.fullName.toLowerCase()).includes(removeAccents(player.player.toLowerCase()))
+                        removeAccents(p.fullName.toLowerCase()).includes(removeAccents(searchName.toLowerCase()))
                     );
                     
                     if (searchResults.length === 0) {
-                        console.log(`Not found in MLB DB: ${player.player}`);
+                        console.log(`Not found in MLB DB: ${player.player} (searched as: ${searchName})`);
                         continue;
                     }
                     
