@@ -440,8 +440,8 @@
                                         </select>
                                     </div>
                                     <div>
-                                        <label style="color:#EAAA00;font-size:12px;display:block;margin-bottom:5px;">MLB Team</label>
-                                        <input type="text" id="manualPlayerMLBTeam" placeholder="e.g., SEA" maxlength="3" style="width:100%;padding:8px;background:#13274F;color:#fff;border:1px solid #EAAA00;border-radius:4px;text-transform:uppercase;">
+                                        <label style="color:#EAAA00;font-size:12px;display:block;margin-bottom:5px;">MLB Team (optional)</label>
+                                        <input type="text" id="manualPlayerMLBTeam" placeholder="Auto-detect" maxlength="3" style="width:100%;padding:8px;background:#13274F;color:#fff;border:1px solid #EAAA00;border-radius:4px;text-transform:uppercase;">
                                     </div>
                                     <div>
                                         <label style="color:#EAAA00;font-size:12px;display:block;margin-bottom:5px;">Game Date</label>
@@ -630,7 +630,7 @@
     </div>
     
     <div style="position: fixed; bottom: 10px; left: 10px; font-size: 11px; color: #9ca3af; font-family: monospace;">
-        v5.6.4 - Preserve Checkboxes + Fix Game Times
+        v5.6.6 - Debug Logging
     </div>
     
     <script>
@@ -1236,11 +1236,11 @@
         async function addManualPitcher() {
             const name = document.getElementById('manualPlayerName').value.trim();
             const fantasyTeam = document.getElementById('manualPlayerTeam').value;
-            const mlbTeam = document.getElementById('manualPlayerMLBTeam').value.trim().toUpperCase();
+            let mlbTeam = document.getElementById('manualPlayerMLBTeam').value.trim().toUpperCase();
             const date = document.getElementById('manualPlayerDate').value;
             
-            if (!name || !fantasyTeam || !mlbTeam || !date) {
-                alert('Please fill in all fields: Pitcher Name, Fantasy Team, MLB Team, and Game Date');
+            if (!name || !fantasyTeam || !date) {
+                alert('Please fill in: Pitcher Name, Fantasy Team, and Game Date');
                 return;
             }
             
@@ -1257,6 +1257,17 @@
             const mlbPlayer = searchResults[0];
             console.log(`Found pitcher: ${mlbPlayer.fullName} (ID: ${mlbPlayer.id})`);
             
+            // If user didn't provide MLB team, try to get it from player data
+            if (!mlbTeam && mlbPlayer.currentTeam?.abbreviation) {
+                mlbTeam = mlbPlayer.currentTeam.abbreviation;
+                console.log(`Auto-detected MLB team: ${mlbTeam}`);
+            }
+            
+            if (!mlbTeam) {
+                alert(`Please enter the MLB team code for ${mlbPlayer.fullName} (e.g., LAD, NYY, BOS)`);
+                return;
+            }
+            
             // Fetch games for this date
             const dateObj = new Date(date);
             const startDate = dateObj.toISOString().split('T')[0];
@@ -1264,22 +1275,29 @@
             
             try {
                 const scheduleUrl = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=${startDate}&endDate=${endDate}`;
+                console.log(`Fetching schedule: ${scheduleUrl}`);
                 const schedResp = await fetch(scheduleUrl);
                 const schedData = await schedResp.json();
+                
+                console.log(`Schedule data for ${startDate}:`, schedData);
                 
                 let gameDateTime = new Date(`${date}T19:00:00`); // Default to 7 PM
                 let pitcherType = 'RP'; // Default to RP
                 let gameFound = false;
                 
                 if (schedData.dates && schedData.dates.length > 0) {
+                    console.log(`Found ${schedData.dates.length} date(s) with games`);
                     for (const dateEntry of schedData.dates) {
+                        console.log(`Date entry: ${dateEntry.date}, Games: ${dateEntry.games.length}`);
                         for (const game of dateEntry.games) {
                             // Check if this team played in this game
                             const awayTeam = game.teams.away.team.abbreviation || game.teams.away.team.teamName;
                             const homeTeam = game.teams.home.team.abbreviation || game.teams.home.team.teamName;
                             
+                            console.log(`Game ${game.gamePk}: ${awayTeam} @ ${homeTeam}`);
+                            
                             if (awayTeam === mlbTeam || homeTeam === mlbTeam) {
-                                console.log(`Found game for ${mlbTeam}: ${game.gamePk}`);
+                                console.log(`✓ Found game for ${mlbTeam}: ${game.gamePk}`);
                                 gameFound = true;
                                 
                                 // Get actual first pitch time from boxscore
@@ -1322,10 +1340,12 @@
                         }
                         if (gameFound) break;
                     }
+                } else {
+                    console.warn(`No dates returned from schedule API for ${startDate}`);
                 }
                 
                 if (!gameFound) {
-                    console.warn(`No game found for ${mlbTeam} on ${date}`);
+                    console.warn(`❌ No game found for ${mlbTeam} on ${date}. Check if team code is correct (should be 3-letter abbreviation like COL, LAD, NYY)`);
                 }
                 
                 // Add to rosterModeData
@@ -1354,7 +1374,7 @@
                 document.getElementById('manualPlayerMLBTeam').value = '';
                 document.getElementById('manualPlayerDate').value = '';
                 
-                alert(`✅ Added: ${mlbPlayer.fullName} (${fantasyTeam}) - ${pitcherType}\nGame time: ${gameDateTime.toLocaleString()}\n\nCheck the list below to select this pitcher.`);
+                alert(`✅ Added: ${mlbPlayer.fullName} (${fantasyTeam}) - ${pitcherType}\nMLB Team: ${mlbTeam}\nGame time: ${gameDateTime.toLocaleString()}\n\nCheck the list below to select this pitcher.`);
                 
             } catch (error) {
                 console.error('Error fetching game data:', error);
